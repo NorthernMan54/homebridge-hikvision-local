@@ -3,3 +3,4 @@ node_modules
 .github
 .homebridge*
 tsconfig.json
+.idea
