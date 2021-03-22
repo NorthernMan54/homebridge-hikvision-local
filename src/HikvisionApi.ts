@@ -54,20 +54,17 @@ export class HikvisionApi {
   }
 
   async getCameras() {
-    const channels = await this._getResponse('/ISAPI/ContentMgmt/InputProxy/channels');
-    const channelStatus = await this._getResponse('/ISAPI/ContentMgmt/InputProxy/channels/status');
+    const channels = await this._getResponse('/ISAPI/System/Video/inputs/channels');
 
-    for (let i = 0; i < channels.InputProxyChannelList.InputProxyChannel.length; i++) {
-      const channel = channels.InputProxyChannelList.InputProxyChannel[i];
-      channel.capabilities = await this._getResponse(`/ISAPI/ContentMgmt/StreamingProxy/channels/${channel.id}01/capabilities`);
+    for (let i = 0; i < channels.VideoInputChannelList.VideoInputChannel.length; i++) {
+      const channel = channels.VideoInputChannelList.VideoInputChannel[i];
+      if (channel.resDesc !== 'NO VIDEO') {
+        channel.capabilities = await this._getResponse(`/ISAPI/ContentMgmt/StreamingProxy/channels/${channel.id}01/capabilities`);
+      }
+      channel.status = { online : channel.resDesc !== 'NO VIDEO' }
     }
 
-    return channels.InputProxyChannelList.InputProxyChannel.map((channel: { status: any; id: any; name: string }) => {
-      channel.status = channelStatus.InputProxyChannelStatusList.InputProxyChannelStatus.find((cs: { id: any; }) => {
-        return cs.id === channel.id;
-      });
-      return channel;
-    }).filter((camera: { status: { online: string; }; }) => camera.status.online === 'true');
+    return channels.VideoInputChannelList.VideoInputChannel.filter((camera: { status: { online: boolean; }; }) => camera.status.online);
   }
 
   async startMonitoringEvents(callback: (value: any) => any) {
@@ -106,8 +103,7 @@ export class HikvisionApi {
     }).then(response => {
       highland(response!.data)
         .map((chunk: any) => chunk.toString('utf8'))
-        .filter(text => text.match(/<\?xml/))
-        .map(text => text.replace(/[\s\S]*<\?xml/gmi, '<?xml'))
+        .filter(text => text.match(/<EventNotificationAlert/))
         .map(xmlText => xmlParser.parseStringPromise(xmlText))
         .each(promise => promise.then(callback));
     });
