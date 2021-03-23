@@ -1,6 +1,6 @@
 # Homebridge Hikvision plugin
 
-> **The original plugin that is based on handles IP cameras, this handles Analog cameras.
+> **The original plugin that is based on handles IP cameras, this plugin handles Analog cameras.
 
 Homebridge plugin that connects to your HikVision NVR and exposes your cameras in Homebridge. The plugin is heavily based on excellent [homebridge-camera-ffmpeg](https://github.com/Sunoo/homebridge-camera-ffmpeg).
 
