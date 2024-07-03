@@ -48,7 +48,7 @@ export class HikVisionNVR {
         accessory: 'camera',
         name: channel.name,
         channelId: channel.id,
-        hasAudio: channel.capabilities ? String(channel.capabilities.StreamingChannel.Audio.enabled._) == "true" : false,
+        hasAudio: channel.capabilities ? String(channel.capabilities.StreamingChannel.Audio.enabled._) == 'true' : false,
       };
 
       const cameraUUID = this.homebridgeApi.hap.uuid.generate(

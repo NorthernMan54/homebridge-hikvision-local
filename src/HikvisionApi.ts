@@ -1,4 +1,4 @@
-require('axios-debug-log');
+// require('axios-debug-log');
 import https from 'https';
 import { AxiosDigestAuth } from '@lukesthl/ts-axios-digest-auth';
 import Axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
