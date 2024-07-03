@@ -1,0 +1,78 @@
+{
+  "pluginAlias": "Hikvision-Local",
+  "pluginType": "platform",
+  "singular": true,
+  "headerDisplay": "",
+  "footerDisplay": "",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "title": "Name",
+        "type": "string",
+        "required": true,
+        "default": "Hikvision-Local",
+        "description": "Plugin name as displayed in the Homebridge log"
+      },
+      "host": {
+        "title": "HikVision NVR/DVR Host Address",
+        "type": "string",
+        "required": true,
+        "description": "This is the name / ip address for your HikVision NVR/DVR."
+      },
+      "port": {
+        "title": "HikVision NVR/DVR Host port",
+        "type": "number",
+        "required": true,
+        "description": "This is the port for your HikVision NVR/DVR. Typically 80 or 443"
+      },
+      "secure": {
+        "title": "HikVision NVR/DVR SSL Connection",
+        "type": "boolean",
+        "required": false,
+        "description": "This enables SSL support for the HikVision NVR/DVR connection"
+      },
+      "username": {
+        "title": "Username",
+        "type": "string",
+        "required": true,
+        "placeholder": "",
+        "description": "This is the username for your HikVision NVR/DVR."
+      },
+      "password": {
+        "title": "Password",
+        "type": "string",
+        "required": true,
+        "placeholder": "",
+        "description": "This is the Password for your HikVision NVR/DVR."
+      },
+      "debugFfmpeg": {
+        "title": "Enable Debug for FFMPEG",
+        "type": "boolean",
+        "required": false,
+        "description": "Enable Debug logging for FFMPEG connection. Very noisy in the log file."
+      }
+    }
+  },
+  "form": [
+    {
+      "type": "fieldset",
+      "title": "Required Settings",
+      "items": [
+          "host",
+          "port",
+          "secure",
+          "username",
+          "password"
+      ]
+    },
+    {
+      "type": "fieldset",
+      "expandable": true,
+      "title": "Optional Settings",
+      "items": [
+        "debugFfmpeg"
+      ]
+    }
+  ]
+}

@@ -1,19 +1,19 @@
 import {
-  Service,
-  WithUUID,
+  API,
   AudioStreamingCodecType,
   AudioStreamingSamplerate,
   CameraControllerOptions,
-  API,
   PlatformAccessory,
-} from "homebridge";
+  Service,
+  WithUUID,
+} from 'homebridge';
 
 // We borrow, rather cheekly from the homebridge-camera-ffmpeg plugin.
 // TODO: probably rethink and do something like https://github.com/homebridge/homebridge-examples/tree/master/bridged-camera-example-typescript.
 
-import { StreamingDelegate } from "homebridge-camera-ffmpeg/dist/streamingDelegate";
-import { Logger } from "homebridge-camera-ffmpeg/dist/logger";
-import { CameraConfig } from "homebridge-camera-ffmpeg/dist/configTypes";
+import { CameraConfig } from 'homebridge-camera-ffmpeg/dist/configTypes';
+import { Logger } from 'homebridge-camera-ffmpeg/dist/logger';
+import { StreamingDelegate } from 'homebridge-camera-ffmpeg/dist/streamingDelegate';
 
 export class HikVisionCamera {
   log: any;
@@ -58,50 +58,48 @@ export class HikVisionCamera {
 
   getServiceByUUIDAndSubType<T extends WithUUID<typeof Service>>(
     uuid: string | T,
-    subType: string
+    subType: string,
   ): Service | undefined {
     return undefined;
   }
 
   configure(accessory: any) {
     this.log.info(
-      "[HikvisionCamera] Configuring accessory: ",
-      accessory.displayName
+      '[HikvisionCamera] Configuring accessory: ',
+      accessory.displayName,
     );
 
-    accessory.on("identify", () => {
+    accessory.on('identify', () => {
       this.log(`${accessory.displayName} identified!`);
     });
 
     let motionSensor: Service | undefined = accessory.getService(
-      this.homebridgeApi.hap.Service.MotionSensor
+      this.homebridgeApi.hap.Service.MotionSensor,
     );
     if (motionSensor) {
-      this.log.info("Re-creating motion sensor");
+      this.log.info('Re-creating motion sensor');
       accessory.removeService(motionSensor);
     } else {
-      this.log.warn("There was no motion sensor set up!");
+      this.log.warn('There was no motion sensor set up!');
     }
 
     motionSensor = new this.homebridgeApi.hap.Service.MotionSensor(
-      accessory.displayName
+      accessory.displayName,
     );
     accessory.addService(motionSensor!);
 
     const channelId = accessory.context.channelId;
-    const cameraConfig = <CameraConfig> {
+    const cameraConfig = <CameraConfig>{
       name: accessory.displayName,
       videoConfig: {
         source: `-rtsp_transport tcp -i rtsp://${accessory.context.username}:${accessory.context.password}@${accessory.context.host}/Streaming/Channels/${channelId}01`,
-        stillImageSource: `-i http${accessory.context.secure ? "s" : ""}://${
-          accessory.context.username
-        }:${accessory.context.password}@${
-          accessory.context.host
+        stillImageSource: `-i http${accessory.context.secure ? 's' : ''}://${accessory.context.username
+        }:${accessory.context.password}@${accessory.context.host
         }/ISAPI/Streaming/channels/${channelId}01/picture?videoResolutionWidth=720`,
         maxFPS: 30, // TODO: pull this from the camera to avoid ever upsampling
         maxBitrate: 16384, // TODO: pull this from the camera to avoid ever upsampling
         maxWidth: 1920, // TODO: pull this from the camera to avoid ever upsampling
-        vcodec: "libx264",
+        vcodec: 'libx264',
         audio: accessory.context.hasAudio,
         debug: Boolean(accessory.context.debugFfmpeg),
       },
@@ -115,7 +113,7 @@ export class HikVisionCamera {
       cameraConfig,
       this.homebridgeApi,
       this.homebridgeApi.hap,
-      ""
+      '',
     );
 
     const cameraControllerOptions: CameraControllerOptions = {
@@ -169,7 +167,7 @@ export class HikVisionCamera {
     };
 
     const cameraController = new this.homebridgeApi.hap.CameraController(
-      cameraControllerOptions
+      cameraControllerOptions,
     );
 
     accessory.configureController(cameraController);
