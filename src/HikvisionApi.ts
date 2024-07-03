@@ -1,13 +1,14 @@
+require('axios-debug-log');
 import https from 'https';
-import Axios, { AxiosResponse, AxiosRequestConfig } from 'axios';
-import { AxiosDigest } from 'axios-digest';
-import xml2js, { Parser } from 'xml2js';
-import highland from 'highland';
+import { AxiosDigestAuth } from '@lukesthl/ts-axios-digest-auth';
+import Axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { PlatformConfig } from 'homebridge';
+import xml2js, { Parser } from 'xml2js';
 
 export interface HikVisionNvrApiConfiguration extends PlatformConfig {
   host: string
-  port: Number
+  port: number
   secure: boolean
   ignoreInsecureTls: boolean
   username: string
@@ -16,18 +17,23 @@ export interface HikVisionNvrApiConfiguration extends PlatformConfig {
 }
 
 export class HikvisionApi {
-  private _http?: AxiosDigest
-  private _parser?: Parser
+  private _http: AxiosDigestAuth;
+  private _parser?: Parser;
+  private _baseURL?: string;
 
   constructor(config: HikVisionNvrApiConfiguration) {
-    const _axios = Axios.create({
-      baseURL: `http${config.secure ? 's' : ''}://${config.host}:${config.port}`,
+    this._baseURL = `http${config.secure ? 's' : ''}://${config.host}:${config.port}`;
+    const axios = Axios.create({
       httpsAgent: new https.Agent({
-        rejectUnauthorized: !config.ignoreInsecureTls
-      })
+        rejectUnauthorized: !config.ignoreInsecureTls,
+      }),
     });
-    this._http = new AxiosDigest(config.username, config.password, _axios);
-    this._parser = new Parser({ explicitArray: false })
+    this._http = new AxiosDigestAuth({
+      username: config.username,
+      password: config.password,
+      axios: axios,
+    });
+    this._parser = new Parser({ explicitArray: false });
   }
 
   /*
@@ -56,15 +62,29 @@ export class HikvisionApi {
   async getCameras() {
     const channels = await this._getResponse('/ISAPI/System/Video/inputs/channels');
 
-    for (let i = 0; i < channels.VideoInputChannelList.VideoInputChannel.length; i++) {
-      const channel = channels.VideoInputChannelList.VideoInputChannel[i];
-      if (channel.resDesc !== 'NO VIDEO') {
-        channel.capabilities = await this._getResponse(`/ISAPI/ContentMgmt/StreamingProxy/channels/${channel.id}01/capabilities`);
+    if (channels.VideoInputChannelList) {
+      for (let i = 0; i < channels.VideoInputChannelList.VideoInputChannel.length; i++) {
+        const channel = channels.VideoInputChannelList.VideoInputChannel[i];
+        if (channel.resDesc !== 'NO VIDEO') {
+          channel.capabilities = await this._getResponse(`/ISAPI/ContentMgmt/StreamingProxy/channels/${channel.id}01/capabilities`);
+        }
+        channel.status = { online: channel.resDesc !== 'NO VIDEO' };
       }
-      channel.status = { online : channel.resDesc !== 'NO VIDEO' }
-    }
 
-    return channels.VideoInputChannelList.VideoInputChannel.filter((camera: { status: { online: boolean; }; }) => camera.status.online);
+      return channels.VideoInputChannelList.VideoInputChannel.filter((camera: { status: { online: boolean; }; }) => camera.status.online);
+    } else {
+      const channels2 = await this._getResponse('/ISAPI/ContentMgmt/InputProxy/channels');
+
+      for (let i = 0; i < channels2.InputProxyChannelList.InputProxyChannel.length; i++) {
+        const channel = channels2.InputProxyChannelList.InputProxyChannel[i];
+        if (channel.resDesc !== 'NO VIDEO') {
+          channel.capabilities = await this._getResponse(`/ISAPI/ContentMgmt/StreamingProxy/channels/${channel.id}01/capabilities`);
+        }
+        channel.status = { online: channel.resDesc !== 'NO VIDEO' };
+      }
+
+      return channels2.InputProxyChannelList.InputProxyChannel.filter((camera: { status: { online: boolean; }; }) => camera.status.online);
+    }
   }
 
   async startMonitoringEvents(callback: (value: any) => any) {
@@ -72,7 +92,6 @@ export class HikvisionApi {
     const xmlParser = new xml2js.Parser({
       explicitArray: false,
     });
-
 
     /*
       EventNotificationAlert: {
@@ -93,28 +112,55 @@ export class HikvisionApi {
       }
       */
 
-
-    const url = `/ISAPI/Event/notification/alertStream`
+    const url = '/ISAPI/Event/notification/alertStream';
 
     // TODO: what do we do if we lose our connection to the NVR? Don't we need to re-connect?
-    this.get(url, {
+    const response = await this.get(url, {
       responseType: 'stream',
-      headers: {}
-    }).then(response => {
-      highland(response!.data)
-        .map((chunk: any) => chunk.toString('utf8'))
-        .filter(text => text.match(/<EventNotificationAlert/))
-        .map(xmlText => xmlParser.parseStringPromise(xmlText))
-        .each(promise => promise.then(callback));
+      headers: { 'Content-Type': 'multipart/form-data' },
     });
+
+    const stream = response?.data;
+    stream.on('data', async (data: {
+      [x: string]: any; toString: () => any;
+    }) => {
+      data = data.toString();
+      // console.log('DATA', data, data.includes('<EventNotificationAlert'));
+      if (data.includes('<EventNotificationAlert')) {
+        const message = data.slice(data.indexOf('<EventNotificationAlert'));
+        // console.log('Message', message);
+        //       callback(xmlParser.parseStringPromise(message));
+        const eventMsg = await xmlParser.parseStringPromise(message).then();
+        // console.log('Response', response);
+        callback(eventMsg);
+      }
+    });
+
+    //  .then((response: any) => {
+    //    highland(response!.data)
+    //      .map((chunk: any) => chunk.toString('utf8'))
+    //      .filter(text => text.match(/<EventNotificationAlert/))
+    //      .findWhere(/<EventNotificationAlert/)
+    //      .each(text => console.log('DATA', text))
+    //       .map(xmlText => xmlParser.parseStringPromise(xmlText))
+    //       .each(promise => promise.then(callback));
+    //  });
   }
 
   async get(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse | undefined> {
-    return this._http?.get(url, config);
+    return this._http.get(this._baseURL + url, config);
   }
 
   private async _getResponse(path: string) {
-    const response = await this._http?.get(path);
+    const response = await this._http?.get<string>(this._baseURL + path, {
+      validateStatus: function (status) {
+        if (status !== 401) {
+          return true; // Resolve only if the status code is less than 500
+        } else {
+          return false;
+        }
+      },
+    });
     const responseJson = await this._parser?.parseStringPromise(response?.data);
     return responseJson;
   }
