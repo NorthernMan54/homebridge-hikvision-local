@@ -51,6 +51,13 @@
         "type": "boolean",
         "required": false,
         "description": "Enable Debug logging for FFMPEG connection. Very noisy in the log file."
+      },
+      "doorbells": {
+        "title": "Doorbell Camera's",
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
       }
     }
   },
@@ -71,6 +78,15 @@
       "expandable": true,
       "title": "Optional Settings",
       "items": [
+        {
+          "key": "doorbells",
+          "type": "array",
+          "items": {
+            "title": "Camera Name",
+            "description": "Name of the camera you want to enable as a doorbell. Creates a switch to be used with an automation to trigger the doorbell.",
+            "type": "string"
+          }
+        },
         "debugFfmpeg"
       ]
     }

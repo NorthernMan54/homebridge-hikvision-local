@@ -14,6 +14,7 @@ export interface HikVisionNvrApiConfiguration extends PlatformConfig {
   username: string
   password: string
   debugFfmpeg: boolean
+  doorbells: string[]
 }
 
 export class HikvisionApi {

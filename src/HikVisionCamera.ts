@@ -5,6 +5,7 @@ import {
   AudioStreamingSamplerate,
   CameraControllerOptions,
   PlatformAccessory,
+  PlatformConfig,
   Service,
   WithUUID,
 } from 'homebridge';
@@ -25,12 +26,13 @@ export class HikVisionCamera {
   UUID: string;
   accessory: any;
 
-  constructor(log: any, homebridgeApi: API, accessory: PlatformAccessory) {
+  constructor(log: any, homebridgeApi: API, accessory: PlatformAccessory, config: PlatformConfig) {
     this.log = log;
     this.homebridgeApi = homebridgeApi;
     this.accessory = accessory;
     this.displayName = this.accessory.displayName;
     this.UUID = accessory.UUID;
+    this.config = config;
 
     this.configure(this.accessory);
   }
@@ -86,6 +88,28 @@ export class HikVisionCamera {
       accessory.displayName,
     );
     accessory.addService(motionSensor!);
+
+    if (this.config.doorbells && this.config.doorbells.includes(accessory.displayName)) {
+      this.log.info('Create Doorbell Trigger for', accessory.displayName);
+      const doorbellService = new this.homebridgeApi.hap.Service.Doorbell(accessory.displayName + ' Doorbell');
+      accessory.addService(doorbellService);
+      const switchService = new this.homebridgeApi.hap.Service.Switch(accessory.displayName + ' Doorbell Trigger', 'DoorbellTrigger');
+      switchService.getCharacteristic(this.homebridgeApi.hap.Characteristic.On)
+        .on('set', (state: any, callback: any) => {
+          this.log.info('Doorbell trigger for %s - %s', accessory.displayName, state);
+          if (state) {
+            doorbellService.getCharacteristic(this.homebridgeApi.hap.Characteristic.ProgrammableSwitchEvent).setValue(this.homebridgeApi.hap.Characteristic.ProgrammableSwitchEvent.SINGLE_PRESS);
+            setTimeout(() => {
+              switchService.getCharacteristic(this.homebridgeApi.hap.Characteristic.On).updateValue(false);
+            }, 5000);
+          }
+          callback(null);
+        });
+      accessory.addService(switchService);
+
+    }
+
+    //      doorbell.updateCharacteristic(hap.Characteristic.ProgrammableSwitchEvent, hap.Characteristic.ProgrammableSwitchEvent.SINGLE_PRESS);
 
     const channelId = accessory.context.channelId;
     const cameraConfig = <CameraConfig>{

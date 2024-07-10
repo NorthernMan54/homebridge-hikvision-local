@@ -49,14 +49,20 @@ export class HikVisionNVR {
         name: channel.name,
         channelId: channel.id,
         hasAudio: channel.capabilities ? String(channel.capabilities.StreamingChannel.Audio.enabled._) == 'true' : false,
+        doorbell: this.config?.doorbells.includes(channel.name),
       };
 
-      const cameraUUID = this.homebridgeApi.hap.uuid.generate(
-        HIKVISION_PLUGIN_NAME + systemInformation.deviceID + cameraConfig.channelId,
+      const cameraUUID = this.homebridgeApi.hap.uuid.generate(HIKVISION_PLUGIN_NAME + systemInformation.deviceID + cameraConfig.channelId,
       );
+
+      let accessoryType = this.homebridgeApi.hap.Accessory.Categories.CAMERA;
+      if (cameraConfig.doorbell) {
+        accessoryType = this.homebridgeApi.hap.Accessory.Categories.VIDEO_DOORBELL;
+      }
       const accessory: PlatformAccessory = new this.homebridgeApi.platformAccessory(
         cameraConfig.name,
         cameraUUID,
+        accessoryType,
       );
       accessory.context = cameraConfig;
 
@@ -90,7 +96,7 @@ export class HikVisionNVR {
     this.log(`Configuring accessory ${accessory.displayName}`);
 
     accessory.context = Object.assign(accessory.context, this.config);
-    const camera = new HikVisionCamera(this.log, this.homebridgeApi, accessory);
+    const camera = new HikVisionCamera(this.log, this.homebridgeApi, accessory, this.config);
 
     const cameraAccessoryInfo = camera.getService(
       this.homebridgeApi.hap.Service.AccessoryInformation,
