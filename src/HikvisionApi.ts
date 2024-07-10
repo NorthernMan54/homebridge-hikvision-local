@@ -140,6 +140,32 @@ export class HikvisionApi {
         callback(eventMsg);
       }
     });
+
+    const stream = response?.data;
+    stream.on('data', async (data: {
+      [x: string]: any; toString: () => any;
+    }) => {
+      data = data.toString();
+      // console.log('DATA', data, data.includes('<EventNotificationAlert'));
+      if (data.includes('<EventNotificationAlert')) {
+        const message = data.slice(data.indexOf('<EventNotificationAlert'));
+        // console.log('Message', message);
+        //       callback(xmlParser.parseStringPromise(message));
+        const eventMsg = await xmlParser.parseStringPromise(message).then();
+        // console.log('Response', response);
+        callback(eventMsg);
+      }
+    });
+
+    //  .then((response: any) => {
+    //    highland(response!.data)
+    //      .map((chunk: any) => chunk.toString('utf8'))
+    //      .filter(text => text.match(/<EventNotificationAlert/))
+    //      .findWhere(/<EventNotificationAlert/)
+    //      .each(text => console.log('DATA', text))
+    //       .map(xmlText => xmlParser.parseStringPromise(xmlText))
+    //       .each(promise => promise.then(callback));
+    //  });
   }
 
   async get(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse | undefined> {
