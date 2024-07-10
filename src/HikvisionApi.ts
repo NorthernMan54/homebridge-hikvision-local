@@ -30,7 +30,7 @@ export class HikvisionApi {
       httpsAgent: new https.Agent({
         rejectUnauthorized: !config.ignoreInsecureTls,
       }),
-      timeout: 8000
+      timeout: 8000,
     });
     this._http = new AxiosDigestAuth({
       username: config.username,
@@ -144,9 +144,9 @@ export class HikvisionApi {
 
   async get(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse | undefined> {
     try {
-    return this._http.get(this._baseURL + url, config);
+      return await this._http.get(this._baseURL + url, config);
     } catch (e: any) {
-      this.log.error('ERROR: get', this._baseURL + url, config, e.message)
+      this.log.error('ERROR: get', this._baseURL + url, config, e.message);
     }
   }
 
