@@ -65,6 +65,12 @@
         "required": false,
         "description": "Number of hours between refreshes of the camera list from the NVR/DVR. Default is 12 hours. Minimum is 1 hour."
       },
+      "test": {
+        "title": "Development / Test flag",
+        "type": "boolean",
+        "required": false,
+        "description": "Set on to enable test mode. This will prevent 'Service name \"xxxxx\" is already in use on the network' messages."
+      },
       "doorbells": {
         "title": "Doorbell Camera's",
         "type": "array",

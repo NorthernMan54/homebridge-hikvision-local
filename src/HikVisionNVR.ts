@@ -44,17 +44,19 @@ export class HikVisionNVR {
         id: string;
         name: string;
         capabilities: any;
+        sourceInputPortDescriptor: any
       }) => {
 
         const cameraConfig = {
           accessory: 'camera',
-          name: channel.name,
+          name: (this.config.test ? 'Test ' : '') + channel.name,
           channelId: channel.id,
           hasAudio: channel.capabilities ? String(channel.capabilities.StreamingChannel.Audio.enabled._) == 'true' : false,
           doorbell: (this.config?.doorbells ? this.config?.doorbells.includes(channel.name) : false),
+          model: channel.sourceInputPortDescriptor.model,
         };
 
-        const cameraUUID = this.homebridgeApi.hap.uuid.generate(HIKVISION_PLUGIN_NAME + systemInformation.DeviceInfo.deviceID + cameraConfig.channelId,
+        const cameraUUID = this.homebridgeApi.hap.uuid.generate((this.config.test ? 'Test ' : '') + HIKVISION_PLUGIN_NAME + systemInformation.DeviceInfo.deviceID + cameraConfig.channelId,
         );
 
         let accessoryType = this.homebridgeApi.hap.Accessory.Categories.CAMERA;
@@ -107,7 +109,7 @@ export class HikVisionNVR {
       this.homebridgeApi.hap.Service.AccessoryInformation,
     );
     cameraAccessoryInfo!.setCharacteristic(this.homebridgeApi.hap.Characteristic.Manufacturer, 'HikVision');
-    // cameraAccessoryInfo!.setCharacteristic(this.homebridgeApi.hap.Characteristic.Model, systemInformation.DeviceInfo.model);
+    cameraAccessoryInfo!.setCharacteristic(this.homebridgeApi.hap.Characteristic.Model, accessory.context.model);
     // cameraAccessoryInfo!.setCharacteristic(this.homebridgeApi.hap.Characteristic.SerialNumber, systemInformation.DeviceInfo.serialNumber);
     // cameraAccessoryInfo!.setCharacteristic(this.homebridgeApi.hap.Characteristic.FirmwareRevision, systemInformation.DeviceInfo.firmwareVersion);
 
