@@ -100,7 +100,6 @@ export class HikVisionNVR {
   }
 
   async configureAccessory(accessory: PlatformAccessory) {
-    this.log(`Configuring accessory ${accessory.displayName}`);
 
     accessory.context = Object.assign(accessory.context, this.config);
     const camera = new HikVisionCamera(this.log, this.homebridgeApi, accessory, this.config);

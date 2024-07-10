@@ -66,7 +66,8 @@ export class HikVisionCamera {
 
   configure(accessory: any) {
     this.log.info(
-      '[HikvisionCamera] Configuring accessory: ',
+      '[HikvisionCamera] Configuring %s accessory: ',
+      ( this.config.doorbells && this.config.doorbells.includes(accessory.displayName) ? 'doorbell' : 'camera' ),
       accessory.displayName,
     );
 
@@ -90,7 +91,7 @@ export class HikVisionCamera {
     accessory.addService(motionSensor!);
 
     if (this.config.doorbells && this.config.doorbells.includes(accessory.displayName)) {
-      this.log.info('Create Doorbell Trigger for', accessory.displayName);
+      this.log.info('[HikvisionCamera] Creating Doorbell Trigger:', accessory.displayName + ' Doorbell Trigger');
       const doorbellService = new this.homebridgeApi.hap.Service.Doorbell(accessory.displayName + ' Doorbell');
       accessory.addService(doorbellService);
       const switchService = new this.homebridgeApi.hap.Service.Switch(accessory.displayName + ' Doorbell Trigger', 'DoorbellTrigger');
@@ -190,7 +191,7 @@ export class HikVisionCamera {
     };
 
     const cameraController = new this.homebridgeApi.hap.CameraController(
-      cameraControllerOptions,
+      cameraControllerOptions, true,
     );
 
     accessory.configureController(cameraController);
