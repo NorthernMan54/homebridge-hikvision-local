@@ -1,6 +1,6 @@
 {
   "name": "homebridge-hikvision-local",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "main": "dist/index.js",
   "license": "MIT",
   "repository": {
@@ -8,10 +8,10 @@
     "url": "git+https://github.com/NorthernMan54/homebridge-hikvision-local.git"
   },
   "dependencies": {
+    "@lukesthl/ts-axios-digest-auth": "^1.0.5",
     "axios": "^1.7.2",
     "axios-debug-log": "^1.0.0",
     "axios-digest": "^0.3.0",
-    "@lukesthl/ts-axios-digest-auth": "^1.0.5",
     "homebridge-camera-ffmpeg": "v3.1.4",
     "xml2js": "^0.6.2"
   },
@@ -37,7 +37,9 @@
     "homebridge": "^1.8.3",
     "jest": "^29.7.0",
     "nodemon": "^3.1.4",
+    "pre-commit": "^1.2.2",
     "rimraf": "^5.0.7",
+    "semver": "^7.6.2",
     "typescript": "^5.5.3"
   },
   "scripts": {
@@ -47,22 +49,26 @@
     "watch": "nodemon",
     "test": "export NODE_TLS_REJECT_UNAUTHORIZED=0;jest --verbose=true",
     "test-coverage": "export NODE_TLS_REJECT_UNAUTHORIZED=0;jest --coverage --verbose=true",
-    "lint": "eslint \"{src,test}/**/*.ts\" --max-warnings=0 --fix"
+    "lint": "eslint \"{src,test}/**/*.ts\" --max-warnings=0 --fix",
+    "prepublishOnly": "npm i --package-lock-only && npm run lint && npm run build",
+    "precommit-msg": "echo 'Pre-commit checks...' && exit 0"
   },
   "engines": {
     "node": ">=10",
     "homebridge": ">=1.0.0"
   },
   "keywords": [
+    "hikvision",
     "homebridge-plugin"
   ],
+  "pre-commit": [ "precommit-msg","lint" ],
   "nodemonConfig": {
     "watch": [
       "src"
     ],
     "ext": "ts",
     "ignore": [],
-    "exec": "tsc && DEBUG=axios homebridge -I -T -D -P ..",
+    "exec": "tsc && homebridge -I -T -D -P ..",
     "signal": "SIGTERM",
     "env": {
       "NODE_OPTIONS": "--trace-warnings"

@@ -32,6 +32,13 @@
         "required": false,
         "description": "This enables SSL support for the HikVision NVR/DVR connection"
       },
+      "ignoreInsecureTls": {
+        "title": "Enable self signed SSL certificates",
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "This enables usage of self signed SSL certificates for the HikVision NVR/DVR connection."
+      },
       "username": {
         "title": "Username",
         "type": "string",
@@ -51,6 +58,25 @@
         "type": "boolean",
         "required": false,
         "description": "Enable Debug logging for FFMPEG connection. Very noisy in the log file."
+      },
+      "refresh": {
+        "title": "Refresh interval of cameras from NVR/DVR",
+        "type": "number",
+        "required": false,
+        "description": "Number of hours between refreshes of the camera list from the NVR/DVR. Default is 12 hours. Minimum is 1 hour."
+      },
+      "test": {
+        "title": "Development / Test flag",
+        "type": "boolean",
+        "required": false,
+        "description": "Set on to enable test mode. This will prevent 'Service name \"xxxxx\" is already in use on the network' messages."
+      },
+      "doorbells": {
+        "title": "Doorbell Camera's",
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
       }
     }
   },
@@ -60,8 +86,8 @@
       "title": "Required Settings",
       "items": [
           "host",
-          "port",
           "secure",
+   
           "username",
           "password"
       ]
@@ -71,7 +97,18 @@
       "expandable": true,
       "title": "Optional Settings",
       "items": [
-        "debugFfmpeg"
+        {
+          "key": "doorbells",
+          "type": "array",
+          "items": {
+            "title": "Camera Name",
+            "description": "Name of the camera you want to enable as a doorbell. Creates a switch to be used with an automation to trigger the doorbell.",
+            "type": "string"
+          }
+        },
+        "debugFfmpeg",
+        "ignoreInsecureTls",
+        "refresh"
       ]
     }
   ]
