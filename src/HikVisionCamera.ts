@@ -81,7 +81,7 @@ export class HikVisionCamera {
       this.log.info('Re-creating motion sensor');
       accessory.removeService(motionSensor);
     } else {
-      this.log.warn('There was no motion sensor set up!');
+      // this.log.warn('There was no motion sensor set up!');
     }
 
     motionSensor = new this.homebridgeApi.hap.Service.MotionSensor(

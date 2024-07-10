@@ -20,14 +20,17 @@ export interface HikVisionNvrApiConfiguration extends PlatformConfig {
 export class HikvisionApi {
   private _http: AxiosDigestAuth;
   private _parser?: Parser;
-  private _baseURL?: string;
+  private log?: any;
+  public _baseURL?: string;
+  public connected: boolean = false;
 
-  constructor(config: HikVisionNvrApiConfiguration) {
-    this._baseURL = `http${config.secure ? 's' : ''}://${config.host}:${config.port}`;
+  constructor(config: HikVisionNvrApiConfiguration, logger: any) {
+    this._baseURL = `http${config.secure ? 's' : ''}://${config.host}`;
     const axios = Axios.create({
       httpsAgent: new https.Agent({
         rejectUnauthorized: !config.ignoreInsecureTls,
       }),
+      timeout: 8000
     });
     this._http = new AxiosDigestAuth({
       username: config.username,
@@ -35,6 +38,7 @@ export class HikvisionApi {
       axios: axios,
     });
     this._parser = new Parser({ explicitArray: false });
+    this.log = logger;
   }
 
   /*
@@ -136,33 +140,32 @@ export class HikvisionApi {
         callback(eventMsg);
       }
     });
-
-    //  .then((response: any) => {
-    //    highland(response!.data)
-    //      .map((chunk: any) => chunk.toString('utf8'))
-    //      .filter(text => text.match(/<EventNotificationAlert/))
-    //      .findWhere(/<EventNotificationAlert/)
-    //      .each(text => console.log('DATA', text))
-    //       .map(xmlText => xmlParser.parseStringPromise(xmlText))
-    //       .each(promise => promise.then(callback));
-    //  });
   }
 
   async get(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse | undefined> {
+    try {
     return this._http.get(this._baseURL + url, config);
+    } catch (e: any) {
+      this.log.error('ERROR: get', this._baseURL + url, config, e.message)
+    }
   }
 
   private async _getResponse(path: string) {
-    const response = await this._http?.get<string>(this._baseURL + path, {
-      validateStatus: function (status) {
-        if (status !== 401) {
-          return true; // Resolve only if the status code is less than 500
-        } else {
-          return false;
-        }
-      },
-    });
-    const responseJson = await this._parser?.parseStringPromise(response?.data);
-    return responseJson;
+    try {
+      const response = await this._http?.get<string>(this._baseURL + path, {
+        validateStatus: function (status) {
+          if (status !== 401) {
+            return true; // Resolve only if the status code is less than 500
+          } else {
+            return false;
+          }
+        },
+      });
+      const responseJson = await this._parser?.parseStringPromise(response?.data);
+      this.connected = true;
+      return responseJson;
+    } catch (e: any) {
+      this.log.error('ERROR: _getResponse', this._baseURL + path, e.message);
+    }
   }
 }

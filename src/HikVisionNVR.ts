@@ -13,7 +13,7 @@ export class HikVisionNVR {
   cameras: HikVisionCamera[];
 
   constructor(logger: any, config: PlatformConfig, api: API) {
-    this.hikVisionApi = new HikvisionApi(config as HikVisionNvrApiConfiguration);
+    this.hikVisionApi = new HikvisionApi(config as HikVisionNvrApiConfiguration, logger);
     this.homebridgeApi = api;
     this.log = logger;
     this.config = config as HikVisionNvrApiConfiguration;
@@ -27,58 +27,63 @@ export class HikVisionNVR {
     );
 
     this.loadAccessories();
-    setInterval(this.loadAccessories.bind(this), 60 * 1000);
+    setInterval(this.loadAccessories.bind(this), ( this.config.refresh ? this.config.refresh * 60 * 60 * 1000 : 12 * 60 * 60 * 1000));
   }
 
   async loadAccessories() {
+    this.log.info('Connecting to NVR system @ %s', this.hikVisionApi._baseURL);
     const systemInformation = await this.hikVisionApi.getSystemInfo();
-    this.log.info('Connected to NVR system: %O', systemInformation);
+    if (this.hikVisionApi.connected) {
+      this.log.info('Connected to NVR system: @ %s -> %O', this.hikVisionApi._baseURL, systemInformation.DeviceInfo.deviceName, systemInformation.DeviceInfo.model);
 
-    this.log.info('Loading cameras...');
-    const apiCameras = await this.hikVisionApi.getCameras();
-    // this.log.debug('Found cameras: %s', JSON.stringify(apiCameras, null, 4));
+      this.log.info('Loading cameras...');
+      const apiCameras = await this.hikVisionApi.getCameras();
+      // this.log.debug('Found cameras: %s', JSON.stringify(apiCameras, null, 4));
 
-    apiCameras.map((channel: {
-      id: string;
-      name: string;
-      capabilities: any;
-    }) => {
+      apiCameras.map((channel: {
+        id: string;
+        name: string;
+        capabilities: any;
+      }) => {
 
-      const cameraConfig = {
-        accessory: 'camera',
-        name: channel.name,
-        channelId: channel.id,
-        hasAudio: channel.capabilities ? String(channel.capabilities.StreamingChannel.Audio.enabled._) == 'true' : false,
-        doorbell: this.config?.doorbells.includes(channel.name),
-      };
+        const cameraConfig = {
+          accessory: 'camera',
+          name: channel.name,
+          channelId: channel.id,
+          hasAudio: channel.capabilities ? String(channel.capabilities.StreamingChannel.Audio.enabled._) == 'true' : false,
+          doorbell: (this.config?.doorbells ? this.config?.doorbells.includes(channel.name) : false),
+        };
 
-      const cameraUUID = this.homebridgeApi.hap.uuid.generate(HIKVISION_PLUGIN_NAME + systemInformation.deviceID + cameraConfig.channelId,
-      );
-
-      let accessoryType = this.homebridgeApi.hap.Accessory.Categories.CAMERA;
-      if (cameraConfig.doorbell) {
-        accessoryType = this.homebridgeApi.hap.Accessory.Categories.VIDEO_DOORBELL;
-      }
-      const accessory: PlatformAccessory = new this.homebridgeApi.platformAccessory(
-        cameraConfig.name,
-        cameraUUID,
-        accessoryType,
-      );
-      accessory.context = cameraConfig;
-
-      // Only add new cameras that are not cached
-      if (!this.cameras.find((x) => x.UUID === accessory.UUID)) {
-        this.configureAccessory(accessory); // abusing the configureAccessory here
-        this.homebridgeApi.publishExternalAccessories(
-          HIKVISION_PLUGIN_NAME,
-          [accessory],
+        const cameraUUID = this.homebridgeApi.hap.uuid.generate(HIKVISION_PLUGIN_NAME + systemInformation.DeviceInfo.deviceID + cameraConfig.channelId,
         );
-      }
 
-      return accessory;
-    });
+        let accessoryType = this.homebridgeApi.hap.Accessory.Categories.CAMERA;
+        if (cameraConfig.doorbell) {
+          accessoryType = this.homebridgeApi.hap.Accessory.Categories.VIDEO_DOORBELL;
+        }
+        const accessory: PlatformAccessory = new this.homebridgeApi.platformAccessory(
+          cameraConfig.name,
+          cameraUUID,
+          accessoryType,
+        );
+        accessory.context = cameraConfig;
 
-    this.log.info('Registering cameras with homebridge');
+        // Only add new cameras that are not cached
+        if (!this.cameras.find((x) => x.UUID === accessory.UUID)) {
+          this.configureAccessory(accessory); // abusing the configureAccessory here
+          this.homebridgeApi.publishExternalAccessories(
+            HIKVISION_PLUGIN_NAME,
+            [accessory],
+          );
+        }
+
+        return accessory;
+      });
+
+      this.log.info('Registering cameras with homebridge');
+    } else {
+      this.log.error('Failed to connect to NVR system @ %s', this.hikVisionApi._baseURL);
+    }
 
     // var camerasToRemove: any[] = [];
     // // Remove cameras that were not in previous call
@@ -162,8 +167,10 @@ export class HikVisionNVR {
   }
 
   startMonitoring() {
-    this.hikVisionApi.startMonitoringEvents(
-      this.processHikVisionEvent.bind(this),
-    );
+    if (this.hikVisionApi.connected) {
+      this.hikVisionApi.startMonitoringEvents(
+        this.processHikVisionEvent.bind(this),
+      );
+    }
   }
 }
