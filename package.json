@@ -1,5 +1,6 @@
 {
   "name": "homebridge-hikvision-local",
+  "homepage": "https://github.com/NorthernMan54/homebridge-hikvision-local",
   "version": "2.0.2",
   "main": "dist/index.js",
   "license": "MIT",
