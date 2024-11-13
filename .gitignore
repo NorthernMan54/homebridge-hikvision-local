@@ -4,4 +4,7 @@ dist/
 node_modules/
 .idea
 yarn-error.log
-**/config.json
+/test/hbConfig/accessories
+/test/hbConfig/persist
+/test/hbConfig/backups
+proxy/doc/i18n/en/Config.json

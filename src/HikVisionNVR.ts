@@ -38,7 +38,9 @@ export class HikVisionNVR {
 
       this.log.info('Loading cameras...');
       const apiCameras = await this.hikVisionApi.getCameras();
-      // this.log.debug('Found cameras: %s', JSON.stringify(apiCameras, null, 4));
+      if (this.config.debug) {
+        this.log.debug('Found cameras: %s', JSON.stringify(apiCameras, null, 4));
+      }
 
       apiCameras.map((channel: {
         id: string;
@@ -53,7 +55,7 @@ export class HikVisionNVR {
           channelId: channel.id,
           hasAudio: channel.capabilities ? String(channel.capabilities.StreamingChannel.Audio.enabled._) == 'true' : false,
           doorbell: (this.config?.doorbells ? this.config?.doorbells.includes(channel.name) : false),
-          model: channel.sourceInputPortDescriptor.model,
+          model: channel.sourceInputPortDescriptor?.model,
         };
 
         const cameraUUID = this.homebridgeApi.hap.uuid.generate((this.config.test ? 'Test ' : '') + HIKVISION_PLUGIN_NAME + systemInformation.DeviceInfo.deviceID + cameraConfig.channelId,
