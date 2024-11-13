@@ -35,7 +35,7 @@ jobs:
       - name: Get Image Tag
         id: get_tag
         run: |
-          export TARGET_IMAGE_TAG=$(if [ "${{ steps.get_branch.outputs.BRANCH_NAME }}" = "latest" ]; then echo "latest"; else echo "${{ steps.get_branch.outputs.BRANCH_NAME }}" | awk -F- '{ print $1 }'; fi)
+          export TARGET_IMAGE_TAG=$(if [ "${{ steps.get_branch.outputs.BRANCH_NAME }}" = "main" ]; then echo "main"; else echo "${{ steps.get_branch.outputs.BRANCH_NAME }}" | awk -F- '{ print $1 }'; fi)
           echo $TARGET_IMAGE_TAG
           echo "TARGET_IMAGE_TAG=${TARGET_IMAGE_TAG}" >> $GITHUB_OUTPUT
 
@@ -85,7 +85,7 @@ jobs:
       id-token: write
     needs: [get_tags, create_documentation]
     name: Publish Release Version
-    if: ${{ needs.get_tags.outputs.BRANCH_NAME == 'latest' }}
+    if: ${{ needs.get_tags.outputs.BRANCH_NAME == 'main' }}
     uses: homebridge/.github/.github/workflows/npm-publish.yml@latest
     with:
       install_cmd: npm ci && cd homebridge-ui/public && npm ci
@@ -97,7 +97,7 @@ jobs:
       id-token: write
     needs: [get_tags, create_documentation]
     name: Publish Test Version - ${{ needs.get_tags.outputs.BRANCH_NAME }}
-    if: ${{ needs.get_tags.outputs.BRANCH_NAME != 'latest' }}
+    if: ${{ needs.get_tags.outputs.BRANCH_NAME != 'main' }}
     uses: homebridge/.github/.github/workflows/npm-publish.yml@latest
     with:
       tag: ${{ needs.get_tags.outputs.TARGET_IMAGE_TAG }}
