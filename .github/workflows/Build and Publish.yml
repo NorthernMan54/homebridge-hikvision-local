@@ -88,7 +88,7 @@ jobs:
     if: ${{ needs.get_tags.outputs.BRANCH_NAME == 'main' }}
     uses: homebridge/.github/.github/workflows/npm-publish.yml@latest
     with:
-      install_cmd: npm ci && cd homebridge-ui/public && npm ci
+      install_cmd: npm ci 
     secrets:
       npm_auth_token: ${{ secrets.NPM_TOKEN }}
 
@@ -104,7 +104,7 @@ jobs:
       dynamically_adjust_version: true
       npm_version_command: pre
       pre_id: ${{ needs.get_tags.outputs.TARGET_IMAGE_TAG }}
-      install_cmd: npm ci && cd homebridge-ui/public && npm ci
+      install_cmd: npm ci 
     secrets:
       npm_auth_token: ${{ secrets.NPM_TOKEN }}
 
