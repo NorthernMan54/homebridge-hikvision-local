@@ -207,4 +207,5 @@ export class HikvisionApi {
       this.log.error(`ERROR: _getResponse ${this._baseURL + path} -> ${e.message}`);
     }
   }
+  
 }
