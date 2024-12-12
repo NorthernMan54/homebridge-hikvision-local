@@ -1,7 +1,7 @@
 {
   "name": "homebridge-hikvision-local",
   "homepage": "https://github.com/NorthernMan54/homebridge-hikvision-local",
-  "version": "2.0.2",
+  "version": "2.1.0",
   "main": "dist/index.js",
   "license": "MIT",
   "repository": {
@@ -10,11 +10,11 @@
   },
   "dependencies": {
     "@lukesthl/ts-axios-digest-auth": "^1.0.5",
-    "axios": "^1.7.2",
+    "axios": "^1.7.9",
     "axios-debug-log": "^1.0.0",
     "axios-digest": "^0.3.0",
+    "debug": "^4.4.0",
     "homebridge-camera-ffmpeg": "v3.1.4",
-
     "xml2js": "^0.6.2"
   },
   "overrides": {
@@ -39,7 +39,7 @@
     "homebridge": "^1.8.3",
     "jest": "^29.7.0",
     "nodemon": "^3.1.4",
-    "pre-commit": "^1.2.2",
+    "pre-commit": "^1.0.10",
     "rimraf": "^5.0.7",
     "semver": "^7.6.2",
     "ts-jest": "^29.2.5",
@@ -74,7 +74,7 @@
     ],
     "ext": "ts",
     "ignore": [],
-    "exec": "tsc && homebridge -U ./test/hbConfig -T -D -P .",
+    "exec": "tsc && homebridge -U ./test/hbConfig -T -Q -P .",
     "signal": "SIGTERM",
     "env": {
       "NODE_OPTIONS": "--trace-warnings"

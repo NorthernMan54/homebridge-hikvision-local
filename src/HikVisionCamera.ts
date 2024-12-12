@@ -66,9 +66,7 @@ export class HikVisionCamera {
 
   configure(accessory: any) {
     this.log.info(
-      '[HikvisionCamera] Configuring %s accessory: ',
-      ( this.config.doorbells && this.config.doorbells.includes(accessory.displayName) ? 'doorbell' : 'camera' ),
-      accessory.displayName,
+      `Configuring ${( this.config.doorbells && this.config.doorbells.includes(accessory.displayName) ? 'doorbell' : 'camera' )} accessory: ${accessory.displayName}`,
     );
 
     accessory.on('identify', () => {
@@ -91,13 +89,13 @@ export class HikVisionCamera {
     accessory.addService(motionSensor!);
 
     if (this.config.doorbells && this.config.doorbells.includes(accessory.displayName)) {
-      this.log.info('[HikvisionCamera] Creating Doorbell Trigger:', accessory.displayName + ' Doorbell Trigger');
+      this.log.info(`Creating Doorbell Trigger: ${accessory.displayName} Doorbell Trigger`);
       const doorbellService = new this.homebridgeApi.hap.Service.Doorbell(accessory.displayName + ' Doorbell');
       accessory.addService(doorbellService);
       const switchService = new this.homebridgeApi.hap.Service.Switch(accessory.displayName + ' Doorbell Trigger', 'DoorbellTrigger');
       switchService.getCharacteristic(this.homebridgeApi.hap.Characteristic.On)
         .on('set', (state: any, callback: any) => {
-          this.log.info('Doorbell trigger for %s - %s', accessory.displayName, state);
+          this.log.info(`Doorbell trigger for ${accessory.displayName} - ${state}` );
           if (state) {
             doorbellService.getCharacteristic(this.homebridgeApi.hap.Characteristic.ProgrammableSwitchEvent).setValue(this.homebridgeApi.hap.Characteristic.ProgrammableSwitchEvent.SINGLE_PRESS);
             setTimeout(() => {
