@@ -2,45 +2,42 @@
 import { API, PlatformAccessory, PlatformConfig } from 'homebridge';
 import { HikVisionCamera } from './HikVisionCamera';
 import { HikVisionNvrApiConfiguration, HikvisionApi } from './HikvisionApi';
+import { Log } from './lib/logger';
 import { HIKVISION_PLUGIN_NAME } from '.';
 
 export class HikVisionNVR {
   private homebridgeApi: API;
-  private log: any;
+  private log: Log;
 
   config: HikVisionNvrApiConfiguration;
   hikVisionApi: HikvisionApi;
   cameras: HikVisionCamera[];
 
-  constructor(logger: any, config: PlatformConfig, api: API) {
-    this.hikVisionApi = new HikvisionApi(config as HikVisionNvrApiConfiguration, logger);
+  constructor(log: any, config: PlatformConfig, api: API) {
+    this.log = new Log(log, config.debug);
     this.homebridgeApi = api;
-    this.log = logger;
+    this.hikVisionApi = new HikvisionApi(config as HikVisionNvrApiConfiguration, this.log);
+
     this.config = config as HikVisionNvrApiConfiguration;
     this.cameras = [];
 
-    this.log('Initialising accessories for HikVision...');
+    this.log.info('Initialising accessories for HikVision...');
 
     this.homebridgeApi.on(
       'didFinishLaunching',
-      this.startMonitoring.bind(this),
+      this.loadAccessories.bind(this),
     );
-
-    this.loadAccessories();
-    setInterval(this.loadAccessories.bind(this), ( this.config.refresh ? this.config.refresh * 60 * 60 * 1000 : 12 * 60 * 60 * 1000));
+    setInterval(this.loadAccessories.bind(this), (this.config.refresh ? this.config.refresh * 60 * 60 * 1000 : 12 * 60 * 60 * 1000));
   }
 
   async loadAccessories() {
-    this.log.info('Connecting to NVR system @ %s', this.hikVisionApi._baseURL);
+    this.log.info(`Connecting to NVR system @ ${this.hikVisionApi._baseURL}`);
     const systemInformation = await this.hikVisionApi.getSystemInfo();
     if (this.hikVisionApi.connected) {
-      this.log.info('Connected to NVR system: @ %s -> %O', this.hikVisionApi._baseURL, systemInformation.DeviceInfo.deviceName, systemInformation.DeviceInfo.model);
-
+      this.log.info(`Connected to NVR system: @ ${this.hikVisionApi._baseURL} -> '${systemInformation.DeviceInfo.deviceName}' ${systemInformation.DeviceInfo.model}`);
       this.log.info('Loading cameras...');
       const apiCameras = await this.hikVisionApi.getCameras();
-      if (this.config.debug) {
-        this.log.debug('Found cameras: %s', JSON.stringify(apiCameras, null, 4));
-      }
+      this.log.debug(`Found cameras: ${JSON.stringify(apiCameras, null, 2)}`);
 
       apiCameras.map((channel: {
         id: string;
@@ -49,6 +46,11 @@ export class HikVisionNVR {
         sourceInputPortDescriptor: any
       }) => {
 
+        if (!channel.capabilities.StreamingChannel) {
+          this.log.error(`Failed to connect to NVR system, incomplete config @ ${this.hikVisionApi._baseURL}`);
+          return;
+        }
+        
         const cameraConfig = {
           accessory: 'camera',
           name: (this.config.test ? 'Test ' : '') + channel.name,
@@ -85,8 +87,9 @@ export class HikVisionNVR {
       });
 
       this.log.info('Registering cameras with homebridge');
+      this.startMonitoring();
     } else {
-      this.log.error('Failed to connect to NVR system @ %s', this.hikVisionApi._baseURL);
+      this.log.error(`Failed to connect to NVR system @ ${this.hikVisionApi._baseURL}`);
     }
 
     // var camerasToRemove: any[] = [];
@@ -134,13 +137,10 @@ export class HikVisionNVR {
           (data) => data.accessory.context.channelId === channelId,
         );
         if (!camera) {
-          return this.log.warn('Could not find camera for event', event);
+          return this.log.warn(`Could not find camera for event ${event}`);
         }
 
-        this.log.info(
-          'Motion detected on camera, triggering motion for ',
-          camera.displayName,
-        );
+        this.log.info(`Motion detected on camera, triggering motion for ${camera.displayName}`);
 
         if (motionDetected !== camera.motionDetected) {
           camera.motionDetected = motionDetected;
@@ -153,7 +153,7 @@ export class HikVisionNVR {
           );
 
           setTimeout(() => {
-            this.log.debug('Disabling motion detection on camera', camera.displayName);
+            this.log.debug(`Disabling motion detection on camera ${camera.displayName}` );
             camera.motionDetected = !motionDetected;
             camera
               .getService(this.homebridgeApi.hap.Service.MotionSensor)
@@ -165,7 +165,7 @@ export class HikVisionNVR {
         }
 
       default:
-        this.log.debug('event', event);
+        this.log.debug(`event ${event}`);
     }
   }
 

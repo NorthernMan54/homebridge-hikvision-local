@@ -20,26 +20,35 @@ export interface HikVisionNvrApiConfiguration extends PlatformConfig {
 
 export class HikvisionApi {
   private _http: AxiosDigestAuth;
+  private _httpStream: AxiosDigestAuth;
   private _parser?: Parser;
   private log?: any;
   public _baseURL?: string;
   public connected: boolean = false;
 
-  constructor(config: HikVisionNvrApiConfiguration, logger: any) {
+  constructor(config: HikVisionNvrApiConfiguration, log: any) {
     this._baseURL = `http${config.secure ? 's' : ''}://${config.host}`;
-    const axios = Axios.create({
-      httpsAgent: new https.Agent({
-        rejectUnauthorized: !config.ignoreInsecureTls,
-      }),
-      timeout: 8000,
-    });
     this._http = new AxiosDigestAuth({
       username: config.username,
       password: config.password,
-      axios: axios,
+      axios: Axios.create({
+        httpsAgent: new https.Agent({
+          rejectUnauthorized: !config.ignoreInsecureTls,
+        }),
+        timeout: 8000,
+      }),
+    });
+    this._httpStream = new AxiosDigestAuth({
+      username: config.username,
+      password: config.password,
+      axios: Axios.create({
+        httpsAgent: new https.Agent({
+          rejectUnauthorized: !config.ignoreInsecureTls,
+        }),
+      }),
     });
     this._parser = new Parser({ explicitArray: false });
-    this.log = logger;
+    this.log = log;
   }
 
   /*
@@ -94,65 +103,94 @@ export class HikvisionApi {
   }
 
   async startMonitoringEvents(callback: (value: any) => any) {
+    this.log.info('Starting event monitoring...');
+    const url = '/ISAPI/Event/notification/alertStream';
 
     const xmlParser = new xml2js.Parser({
       explicitArray: false,
     });
 
-    /*
-      EventNotificationAlert: {
-        '$': { version: '2.0', xmlns: 'http://www.isapi.org/ver20/XMLSchema' },
-        ipAddress: '10.0.1.186',
-        portNo: '80',
-        protocolType: 'HTTP',
-        macAddress: 'f8:4d:fc:f8:ef:1c',
-        dynChannelID: '1',
-        channelID: '1',
-        dateTime: '2020-02-19T18:44:4400:00',
-        activePostCount: '1',
-        eventType: 'fielddetection',
-        eventState: 'active',
-        eventDescription: 'fielddetection alarm',
-        channelName: 'Front door',
-        DetectionRegionList: { DetectionRegionEntry: [Object] }
+    const startStream = async () => {
+      try {
+        const response = await this.getStream(url, {
+          responseType: 'stream',
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+
+        this.log.info(`Event Monitoring Connection Status ${response?.status} -> ${response?.statusText}`);
+
+        if (response?.status !== 200) {
+          throw new Error(`Failed to start stream, retrying... ${response?.status} -> ${response?.statusText}`);
+        } else {
+          const stream = response?.data;
+          // eslint-disable-next-line @typescript-eslint/no-use-before-define
+          handleStream(stream);
+        }
+      } catch (error) {
+        this.log.error(`Failed to start stream, retrying... ${error}`);
+        setTimeout(startStream, 5000); // Retry after 5 seconds
       }
-      */
+    };
 
-    const url = '/ISAPI/Event/notification/alertStream';
+    const handleStream = async (stream: any) => {
+      stream.on('error', (error: any) => {
+        this.log.error(`Stream error, restarting connection...${error}`);
+        startStream();
+      });
 
-    // TODO: what do we do if we lose our connection to the NVR? Don't we need to re-connect?
-    const response = await this.get(url, {
-      responseType: 'stream',
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+      //  stream.on('end', () => {
+      //    this.log.info('Stream ended, restarting connection...');
+      //    startStream();
+      //  });
 
-    const stream = response?.data;
-    stream.on('data', async (data: {
-      [x: string]: any; toString: () => any;
-    }) => {
-      data = data.toString();
-      // console.log('DATA', data, data.includes('<EventNotificationAlert'));
-      if (data.includes('<EventNotificationAlert')) {
-        const message = data.slice(data.indexOf('<EventNotificationAlert'));
-        // console.log('Message', message);
-        //       callback(xmlParser.parseStringPromise(message));
-        const eventMsg = await xmlParser.parseStringPromise(message).then();
-        // console.log('Response', response);
-        callback(eventMsg);
-      }
-    });
+      stream.on('close', () => {
+        this.log.info('Stream closed, restarting connection...');
+        startStream();
+      });
+
+      stream.on('finish', () => {
+        this.log.info('Stream finished, restarting connection...');
+        startStream();
+      });
+
+      stream.on('pause', () => {
+        this.log.debug('stream PAUSE');
+      });
+
+      stream.on('resume', () => {
+        this.log.debug('stream RESUME');
+      });
+
+      stream.on('unpipe', () => {
+        this.log.debug('stream UNPIPE');
+      });
+
+      stream.on('data', async (data: { [x: string]: any; toString: () => any; }) => {
+        data = data.toString();
+        // console.log('DATA', data);
+        if (data.includes('<EventNotificationAlert')) {
+          const message = data.slice(data.indexOf('<EventNotificationAlert'));
+          const eventMsg = await xmlParser.parseStringPromise(message);
+          callback(eventMsg);
+        }
+      });
+    };
+
+    startStream();
   }
 
-  async get(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse | undefined> {
+  private async getStream(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse | undefined> {
     try {
-      return await this._http.get(this._baseURL + url, config);
+      // this.log.debug('GET', this._baseURL + url, config);
+      return await this._httpStream.get(this._baseURL + url, config);
     } catch (e: any) {
-      this.log.error('ERROR: get', this._baseURL + url, config, e.message);
+      this.log.error(`ERROR: getStream ${this._baseURL + url} -> ${config} ${e}`);
     }
   }
 
   private async _getResponse(path: string) {
     try {
+      // this.log.debug(`_getResponse ${this._baseURL + path}`);
       const response = await this._http?.get<string>(this._baseURL + path, {
         validateStatus: function (status) {
           if (status !== 401) {
@@ -166,7 +204,8 @@ export class HikvisionApi {
       this.connected = true;
       return responseJson;
     } catch (e: any) {
-      this.log.error('ERROR: _getResponse', this._baseURL + path, e.message);
+      this.log.error(`ERROR: _getResponse ${this._baseURL + path} -> ${e.message}`);
     }
   }
+
 }
