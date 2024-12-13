@@ -1,4 +1,4 @@
-require('axios-debug-log');
+// require('axios-debug-log');
 import https from 'https';
 import { AxiosDigestAuth } from '@lukesthl/ts-axios-digest-auth';
 import Axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
@@ -207,5 +207,5 @@ export class HikvisionApi {
       this.log.error(`ERROR: _getResponse ${this._baseURL + path} -> ${e.message}`);
     }
   }
-  
+
 }
