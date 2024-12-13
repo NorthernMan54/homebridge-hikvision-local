@@ -50,7 +50,7 @@ export class HikVisionNVR {
           this.log.error(`Failed to connect to NVR system, incomplete config @ ${this.hikVisionApi._baseURL}`);
           return;
         }
-        
+
         const cameraConfig = {
           accessory: 'camera',
           name: (this.config.test ? 'Test ' : '') + channel.name,
@@ -123,46 +123,52 @@ export class HikVisionNVR {
   private processHikVisionEvent(event: any) {
     switch (event.EventNotificationAlert.eventType) {
       case 'videoloss':
-        this.log.debug('videoloss, nothing to do...');
+        {
+          const channelId = (event.EventNotificationAlert.channelID ? event.EventNotificationAlert.channelID : event.EventNotificationAlert.dynChannelID);
+          this.log.debug(`videoloss on ${channelId}, nothing to do...`);
+        }
         break;
       case 'fielddetection':
       case 'linedetection':
       case 'shelteralarm':
       case 'VMD':
-        const motionDetected =
-          event.EventNotificationAlert.eventState === 'active';
-        const channelId = (event.EventNotificationAlert.channelID ? event.EventNotificationAlert.channelID : event.EventNotificationAlert.dynChannelID);
+        {
+          const motionDetected =
+            event.EventNotificationAlert.eventState === 'active';
+          const channelId = (event.EventNotificationAlert.channelID ? event.EventNotificationAlert.channelID : event.EventNotificationAlert.dynChannelID);
 
-        const camera = this.cameras.find(
-          (data) => data.accessory.context.channelId === channelId,
-        );
-        if (!camera) {
-          return this.log.warn(`Could not find camera for event ${event}`);
-        }
-
-        this.log.info(`Motion detected on camera, triggering motion for ${camera.displayName}`);
-
-        if (motionDetected !== camera.motionDetected) {
-          camera.motionDetected = motionDetected;
-          const motionService = camera.getService(
-            this.homebridgeApi.hap.Service.MotionSensor,
+          const camera = this.cameras.find(
+            (data) => data.accessory.context.channelId === channelId,
           );
-          motionService?.setCharacteristic(
-            this.homebridgeApi.hap.Characteristic.MotionDetected,
-            motionDetected,
-          );
+          if (!camera) {
+            return this.log.warn(`Could not find camera for event ${event}`);
+          }
 
-          setTimeout(() => {
-            this.log.debug(`Disabling motion detection on camera ${camera.displayName}` );
-            camera.motionDetected = !motionDetected;
-            camera
-              .getService(this.homebridgeApi.hap.Service.MotionSensor)
-              ?.setCharacteristic(
-                this.homebridgeApi.hap.Characteristic.MotionDetected,
-                !motionDetected,
-              );
-          }, 10000);
+          this.log.info(`${event.EventNotificationAlert.eventType} event detected on camera, triggering motion for ${camera.displayName}`);
+
+          if (motionDetected !== camera.motionDetected) {
+            camera.motionDetected = motionDetected;
+            const motionService = camera.getService(
+              this.homebridgeApi.hap.Service.MotionSensor,
+            );
+            motionService?.setCharacteristic(
+              this.homebridgeApi.hap.Characteristic.MotionDetected,
+              motionDetected,
+            );
+
+            setTimeout(() => {
+              this.log.debug(`Disabling motion detection on camera ${camera.displayName}`);
+              camera.motionDetected = !motionDetected;
+              camera
+                .getService(this.homebridgeApi.hap.Service.MotionSensor)
+                ?.setCharacteristic(
+                  this.homebridgeApi.hap.Characteristic.MotionDetected,
+                  !motionDetected,
+                );
+            }, 10000);
+          }
         }
+        break;
 
       default:
         this.log.debug(`event ${event}`);
