@@ -74,7 +74,7 @@
     ],
     "ext": "ts",
     "ignore": [],
-    "exec": "tsc && homebridge -U ./test/hbConfig -T -Q -P .",
+    "exec": "npm run build && DEBUG=HAP-NodeJS:* homebridge -U ./test/hbConfig -I -T -Q -P .",
     "signal": "SIGTERM",
     "env": {
       "NODE_OPTIONS": "--trace-warnings"
