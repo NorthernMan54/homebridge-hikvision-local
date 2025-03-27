@@ -1,7 +1,7 @@
 // require('axios-debug-log');
-import https from 'https';
 import { AxiosDigestAuth } from '@lukesthl/ts-axios-digest-auth';
 import Axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
+import https from 'https';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { PlatformConfig } from 'homebridge';
 import xml2js, { Parser } from 'xml2js';
@@ -19,6 +19,8 @@ export interface HikVisionNvrApiConfiguration extends PlatformConfig {
 }
 
 export class HikvisionApi {
+  private _credentials: { username: string; password: string; };
+  private _rejectUnauthorized: boolean = true;
   private _http: AxiosDigestAuth;
   private _httpStream: AxiosDigestAuth;
   private _parser?: Parser;
@@ -28,22 +30,25 @@ export class HikvisionApi {
 
   constructor(config: HikVisionNvrApiConfiguration, log: any) {
     this._baseURL = `http${config.secure ? 's' : ''}://${config.host}`;
-    this._http = new AxiosDigestAuth({
+    this._credentials = {
       username: config.username,
-      password: config.password,
+      password: config.password
+    };
+    this._rejectUnauthorized = !config.ignoreInsecureTls;
+    this._http = new AxiosDigestAuth({
+      ...this._credentials,
       axios: Axios.create({
         httpsAgent: new https.Agent({
-          rejectUnauthorized: !config.ignoreInsecureTls,
+          rejectUnauthorized: this._rejectUnauthorized,
         }),
         timeout: 8000,
       }),
     });
     this._httpStream = new AxiosDigestAuth({
-      username: config.username,
-      password: config.password,
+      ...this._credentials,
       axios: Axios.create({
         httpsAgent: new https.Agent({
-          rejectUnauthorized: !config.ignoreInsecureTls,
+          rejectUnauthorized: this._rejectUnauthorized,
         }),
       }),
     });
@@ -181,10 +186,18 @@ export class HikvisionApi {
 
   private async getStream(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse | undefined> {
     try {
-      // this.log.debug('GET', this._baseURL + url, config);
+      this.log.debug(`getStream-GET ${this._baseURL + url} -> ${JSON.stringify(config, null, 0)}`);
       return await this._httpStream.get(this._baseURL + url, config);
     } catch (e: any) {
       this.log.error(`ERROR: getStream ${this._baseURL + url} -> ${config} ${e}`);
+      this._httpStream = new AxiosDigestAuth({
+        ...this._credentials,
+        axios: Axios.create({
+          httpsAgent: new https.Agent({
+            rejectUnauthorized: this._rejectUnauthorized,
+          }),
+        }),
+      });
     }
   }
 
