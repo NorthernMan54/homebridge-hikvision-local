@@ -1,7 +1,7 @@
 {
   "name": "homebridge-hikvision-local",
   "homepage": "https://github.com/NorthernMan54/homebridge-hikvision-local",
-  "version": "2.1.0",
+  "version": "2.1.2",
   "main": "dist/index.js",
   "license": "MIT",
   "repository": {
@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@lukesthl/ts-axios-digest-auth": "^1.0.5",
-    "axios": "^1.7.9",
+    "axios": "^1.8.4",
     "axios-debug-log": "^1.0.0",
     "axios-digest": "^0.3.0",
     "debug": "^4.4.0",
@@ -24,25 +24,25 @@
   },
   "devDependencies": {
     "@types/highland": "^2.13.0",
-    "@types/jest": "^29.5.12",
-    "@types/node": "^20.14.9",
+    "@types/jest": "^29.5.14",
+    "@types/node": "^22.13.14",
     "@types/node-persist": "^3.1.8",
     "@types/xml2js": "^0.4.14",
     "@typescript-eslint/eslint-plugin": "^7.14.1",
     "@typescript-eslint/parser": "^7.14.1",
-    "eslint": "^8.57.0",
+    "eslint": "^8.57.1",
     "eslint-config-airbnb-typescript": "^18.0.0",
     "eslint-plugin-import": "^2.29.1",
     "eslint-plugin-import-newlines": "^1.4.0",
     "eslint-plugin-jest": "^28.6.0",
     "eslint-plugin-sort-exports": "^0.9.1",
-    "homebridge": "^1.8.3",
+    "homebridge": "^1.9.0",
     "jest": "^29.7.0",
-    "nodemon": "^3.1.4",
+    "nodemon": "^3.1.9",
     "pre-commit": "^1.0.10",
-    "rimraf": "^5.0.7",
-    "semver": "^7.6.2",
-    "ts-jest": "^29.2.5",
+    "rimraf": "^6.0.1",
+    "semver": "^7.7.1",
+    "ts-jest": "^29.3.0",
     "typescript": "^5.5.3"
   },
   "scripts": {
@@ -74,7 +74,7 @@
     ],
     "ext": "ts",
     "ignore": [],
-    "exec": "npm run build && DEBUG=HAP-NodeJS:* homebridge -U ./test/hbConfig -I -T -Q -P .",
+    "exec": "npm run build && homebridge -U ./test/hbConfig -I -T -Q -P .",
     "signal": "SIGTERM",
     "env": {
       "NODE_OPTIONS": "--trace-warnings"

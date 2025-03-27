@@ -1,9 +1,9 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { API, PlatformAccessory, PlatformConfig } from 'homebridge';
+import { HIKVISION_PLUGIN_NAME } from '.';
 import { HikVisionCamera } from './HikVisionCamera';
 import { HikVisionNvrApiConfiguration, HikvisionApi } from './HikvisionApi';
 import { Log } from './lib/logger';
-import { HIKVISION_PLUGIN_NAME } from '.';
 
 export class HikVisionNVR {
   private homebridgeApi: API;
@@ -50,12 +50,12 @@ export class HikVisionNVR {
           this.log.error(`Failed to connect to NVR system, incomplete config @ ${this.hikVisionApi._baseURL}`);
           return;
         }
-        
+
         const cameraConfig = {
           accessory: 'camera',
           name: (this.config.test ? 'Test ' : '') + channel.name,
           channelId: channel.id,
-          hasAudio: channel.capabilities ? String(channel.capabilities.StreamingChannel.Audio.enabled._) == 'true' : false,
+          hasAudio: channel.capabilities.StreamingChannel.Audio ? String(channel.capabilities.StreamingChannel.Audio.enabled._) == 'true' : false,
           doorbell: (this.config?.doorbells ? this.config?.doorbells.includes(channel.name) : false),
           model: channel.sourceInputPortDescriptor?.model,
         };
@@ -123,7 +123,8 @@ export class HikVisionNVR {
   private processHikVisionEvent(event: any) {
     switch (event.EventNotificationAlert.eventType) {
       case 'videoloss':
-        this.log.debug('videoloss, nothing to do...');
+        // this.log.debug(`videoloss, nothing to do...${JSON.stringify(event, null, 2)}`);
+        this.log.debug(`videoloss, nothing to do...${JSON.stringify(event.EventNotificationAlert.channelID, null, 2)}`);
         break;
       case 'fielddetection':
       case 'linedetection':
@@ -153,7 +154,7 @@ export class HikVisionNVR {
           );
 
           setTimeout(() => {
-            this.log.debug(`Disabling motion detection on camera ${camera.displayName}` );
+            this.log.debug(`Disabling motion detection on camera ${camera.displayName} `);
             camera.motionDetected = !motionDetected;
             camera
               .getService(this.homebridgeApi.hap.Service.MotionSensor)
@@ -165,7 +166,7 @@ export class HikVisionNVR {
         }
 
       default:
-        this.log.debug(`event ${event}`);
+        this.log.debug(`event ${event} `);
     }
   }
 
