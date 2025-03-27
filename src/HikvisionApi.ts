@@ -1,7 +1,7 @@
 // require('axios-debug-log');
+import https from 'https';
 import { AxiosDigestAuth } from '@lukesthl/ts-axios-digest-auth';
 import Axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
-import https from 'https';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { PlatformConfig } from 'homebridge';
 import xml2js, { Parser } from 'xml2js';
@@ -32,7 +32,7 @@ export class HikvisionApi {
     this._baseURL = `http${config.secure ? 's' : ''}://${config.host}`;
     this._credentials = {
       username: config.username,
-      password: config.password
+      password: config.password,
     };
     this._rejectUnauthorized = !config.ignoreInsecureTls;
     this._http = new AxiosDigestAuth({
