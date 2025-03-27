@@ -1,9 +1,9 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { API, PlatformAccessory, PlatformConfig } from 'homebridge';
-import { HIKVISION_PLUGIN_NAME } from '.';
 import { HikVisionCamera } from './HikVisionCamera';
 import { HikVisionNvrApiConfiguration, HikvisionApi } from './HikvisionApi';
 import { Log } from './lib/logger';
+import { HIKVISION_PLUGIN_NAME } from '.';
 
 export class HikVisionNVR {
   private homebridgeApi: API;
