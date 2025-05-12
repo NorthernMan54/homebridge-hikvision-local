@@ -1,4 +1,9 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
+// We borrow, rather cheekly from the homebridge-camera-ffmpeg plugin.
+// TODO: probably rethink and do something like https://github.com/homebridge/homebridge-examples/tree/master/bridged-camera-example-typescript.
+import { Logger } from '@homebridge-plugins/homebridge-camera-ffmpeg/dist/logger.js';
+import { CameraConfig } from '@homebridge-plugins/homebridge-camera-ffmpeg/dist/settings';
+import { StreamingDelegate } from '@homebridge-plugins/homebridge-camera-ffmpeg/dist/streamingDelegate.js';
 import {
   API,
   AudioStreamingCodecType,
@@ -9,11 +14,6 @@ import {
   Service,
   WithUUID,
 } from 'homebridge';
-// We borrow, rather cheekly from the homebridge-camera-ffmpeg plugin.
-// TODO: probably rethink and do something like https://github.com/homebridge/homebridge-examples/tree/master/bridged-camera-example-typescript.
-import { CameraConfig } from 'homebridge-camera-ffmpeg/dist/configTypes';
-import { Logger } from 'homebridge-camera-ffmpeg/dist/logger';
-import { StreamingDelegate } from 'homebridge-camera-ffmpeg/dist/streamingDelegate';
 
 export class HikVisionCamera {
   log: any;
@@ -135,7 +135,7 @@ export class HikVisionCamera {
       cameraConfig,
       this.homebridgeApi,
       this.homebridgeApi.hap,
-      '',
+      accessory,
     );
 
     const cameraControllerOptions: CameraControllerOptions = {

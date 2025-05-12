@@ -1,6 +1,6 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { API } from 'homebridge';
-import { HikVisionNVR } from './HikVisionNVR';
+import { HikVisionNVR } from './HikVisionNVR.js';
 
 export const HIKVISION_PLATFORM_NAME = 'Hikvision-Local';
 export const HIKVISION_PLUGIN_NAME = 'homebridge-hikvision-local';

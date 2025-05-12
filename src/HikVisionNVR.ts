@@ -1,9 +1,9 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { API, PlatformAccessory, PlatformConfig } from 'homebridge';
-import { HikVisionCamera } from './HikVisionCamera';
-import { HikVisionNvrApiConfiguration, HikvisionApi } from './HikvisionApi';
-import { Log } from './lib/logger';
-import { HIKVISION_PLUGIN_NAME } from '.';
+import { HikVisionCamera } from './HikVisionCamera.js';
+import { HikVisionNvrApiConfiguration, HikvisionApi } from './HikvisionApi.js';
+import { Log } from './lib/logger.js';
+import { HIKVISION_PLUGIN_NAME } from './index.js';
 
 export class HikVisionNVR {
   private homebridgeApi: API;
@@ -163,9 +163,9 @@ export class HikVisionNVR {
               );
           }, 10000);
         }
-
+        break;
       default:
-        this.log.debug(`event ${event}`);
+        this.log.debug(`event ${JSON.stringify(event)}`);
     }
   }
 

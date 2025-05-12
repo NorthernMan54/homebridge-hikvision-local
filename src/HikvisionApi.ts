@@ -19,34 +19,15 @@ export interface HikVisionNvrApiConfiguration extends PlatformConfig {
 }
 
 export class HikvisionApi {
-  private _http: AxiosDigestAuth;
-  private _httpStream: AxiosDigestAuth;
   private _parser?: Parser;
   private log?: any;
+  private config: HikVisionNvrApiConfiguration;
   public _baseURL?: string;
   public connected: boolean = false;
 
   constructor(config: HikVisionNvrApiConfiguration, log: any) {
     this._baseURL = `http${config.secure ? 's' : ''}://${config.host}`;
-    this._http = new AxiosDigestAuth({
-      username: config.username,
-      password: config.password,
-      axios: Axios.create({
-        httpsAgent: new https.Agent({
-          rejectUnauthorized: !config.ignoreInsecureTls,
-        }),
-        timeout: 8000,
-      }),
-    });
-    this._httpStream = new AxiosDigestAuth({
-      username: config.username,
-      password: config.password,
-      axios: Axios.create({
-        httpsAgent: new https.Agent({
-          rejectUnauthorized: !config.ignoreInsecureTls,
-        }),
-      }),
-    });
+    this.config = config;
     this._parser = new Parser({ explicitArray: false });
     this.log = log;
   }
@@ -182,7 +163,16 @@ export class HikvisionApi {
   private async getStream(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse | undefined> {
     try {
       // this.log.debug('GET', this._baseURL + url, config);
-      return await this._httpStream.get(this._baseURL + url, config);
+      const httpStream = new AxiosDigestAuth({
+        username: this.config.username,
+        password: this.config.password,
+        axios: Axios.create({
+          httpsAgent: new https.Agent({
+            rejectUnauthorized: !this.config.ignoreInsecureTls,
+          }),
+        }),
+      });
+      return await httpStream.get(this._baseURL + url, config);
     } catch (e: any) {
       this.log.error(`ERROR: getStream ${this._baseURL + url} -> ${config} ${e}`);
     }
@@ -191,7 +181,17 @@ export class HikvisionApi {
   private async _getResponse(path: string) {
     try {
       // this.log.debug(`_getResponse ${this._baseURL + path}`);
-      const response = await this._http?.get<string>(this._baseURL + path, {
+      const http = new AxiosDigestAuth({
+        username: this.config.username,
+        password: this.config.password,
+        axios: Axios.create({
+          httpsAgent: new https.Agent({
+            rejectUnauthorized: !this.config.ignoreInsecureTls,
+          }),
+          timeout: 8000,
+        }),
+      });
+      const response = await http?.get<string>(this._baseURL + path, {
         validateStatus: function (status) {
           if (status !== 401) {
             return true; // Resolve only if the status code is less than 500

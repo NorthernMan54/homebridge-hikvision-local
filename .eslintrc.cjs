@@ -5,12 +5,17 @@ module.exports = {
     sourceType: 'module',
   },
   ignorePatterns: [
-    "ui/",
+    'ui/',
     'ui/**/*',
     'dist/**/*',
-    '.eslintrc.js'
+    '.eslintrc.js',
   ],
-  plugins: ['@typescript-eslint/eslint-plugin', 'import', 'import-newlines', 'sort-exports'],
+  plugins: [
+    '@typescript-eslint/eslint-plugin',
+    'import',
+    'import-newlines',
+    'sort-exports',
+  ],
   extends: [
     'airbnb-typescript/base',
     'plugin:@typescript-eslint/recommended',
@@ -33,6 +38,25 @@ module.exports = {
     'sort-exports/sort-exports': ['warn', { sortDir: 'asc' }],
     'sort-imports': ['warn', { ignoreDeclarationSort: true }],
     'space-before-function-paren': ['error', { named: 'never' }],
+
+    // ESM-friendly rules
+    'import/extensions': ['error', 'ignorePackages', {
+      ts: 'never',
+      js: 'always',
+    }],
+    'import/no-extraneous-dependencies': ['error', {
+      devDependencies: true, // allow all devDependencies
+      optionalDependencies: false,
+      peerDependencies: false,
+      packageDir: __dirname, // resolve from this project's package.json
+    }],
+  },
+  settings: {
+    'import/resolver': {
+      node: {
+        extensions: ['.js', '.ts'],
+      },
+    },
   },
   overrides: [
     {
@@ -50,11 +74,11 @@ module.exports = {
       rules: {
         '@typescript-eslint/no-explicit-any': ['off'],
         '@typescript-eslint/no-unused-vars': ['warn', { args: 'none', vars: 'local', varsIgnorePattern: 'key|wrapper' }],
-        'jest/no-conditional-expect': ['off']
+        'jest/no-conditional-expect': ['off'],
       },
       env: {
         jest: true,
       },
-    }
-  ]
+    },
+  ],
 };
