@@ -66,7 +66,7 @@ export class HikVisionCamera {
 
   configure(accessory: any) {
     this.log.info(
-      `Configuring ${( this.config.doorbells && this.config.doorbells.includes(accessory.displayName) ? 'doorbell' : 'camera' )} accessory: ${accessory.displayName}`,
+      `Configuring ${( this.config.doorbells && this.config.doorbells.includes(accessory.displayName) ? 'doorbell' : 'camera' )} accessory: ${accessory.displayName} - ${JSON.stringify(accessory.context)}`,
     );
 
     accessory.on('identify', () => {
@@ -110,7 +110,7 @@ export class HikVisionCamera {
 
     //      doorbell.updateCharacteristic(hap.Characteristic.ProgrammableSwitchEvent, hap.Characteristic.ProgrammableSwitchEvent.SINGLE_PRESS);
 
-    const channelId = accessory.context.channelId;
+    const channelId = accessory.context.channelId; 
     const cameraConfig = <CameraConfig>{
       name: accessory.displayName,
       videoConfig: {
@@ -118,9 +118,10 @@ export class HikVisionCamera {
         stillImageSource: `-i http${accessory.context.secure ? 's' : ''}://${accessory.context.username
         }:${accessory.context.password}@${accessory.context.host
         }/ISAPI/Streaming/channels/${channelId}01/picture?videoResolutionWidth=720`,
-        maxFPS: 30, // TODO: pull this from the camera to avoid ever upsampling
-        maxBitrate: 16384, // TODO: pull this from the camera to avoid ever upsampling
-        maxWidth: 1920, // TODO: pull this from the camera to avoid ever upsampling
+        maxFPS: (accessory.context.maxFPS ? accessory.context.maxFPS : 30),
+        maxBitrate: (accessory.context.maxBitrate ? accessory.context.maxBitrate : 16384), 
+        maxWidth: (accessory.context.maxWidth ? accessory.context.maxWidth : 1920),
+        maxHeight: (accessory.context.maxHeight ? accessory.context.maxHeight : 1080),
         vcodec: 'libx264',
         audio: accessory.context.hasAudio,
         debug: Boolean(accessory.context.debugFfmpeg),
