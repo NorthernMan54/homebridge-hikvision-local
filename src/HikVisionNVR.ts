@@ -58,10 +58,10 @@ export class HikVisionNVR {
           hasAudio: channel.capabilities ? String(channel.capabilities.StreamingChannel.Audio.enabled._) == 'true' : false,
           doorbell: (this.config?.doorbells ? this.config?.doorbells.includes(channel.name) : false),
           model: channel.sourceInputPortDescriptor?.model,
-          maxFPS: channel.capabilities.StreamingChannel.Video.maxFrameRate._ / 100,
-          maxBitrate: channel.capabilities.StreamingChannel.Video.vbrUpperCap._, 
-          maxWidth: channel.capabilities.StreamingChannel.Video.videoResolutionWidth._,
-          maxHeight: channel.capabilities.StreamingChannel.Video.videoResolutionHeight._,
+          maxFPS: channel.capabilities.StreamingChannel.Video?.maxFrameRate?._ / 100,
+          maxBitrate: channel.capabilities.StreamingChannel.Video?.vbrUpperCap?._, 
+          maxWidth: channel.capabilities.StreamingChannel.Video?.videoResolutionWidth?._,
+          maxHeight: channel.capabilities.StreamingChannel.Video?.videoResolutionHeight?._,
         };
 
         const cameraUUID = this.homebridgeApi.hap.uuid.generate((this.config.test ? 'Test ' : '') + HIKVISION_PLUGIN_NAME + systemInformation.DeviceInfo.deviceID + cameraConfig.channelId,
