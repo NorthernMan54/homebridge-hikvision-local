@@ -108,8 +108,8 @@ export class HikvisionApi {
           handleStream(stream);
         }
       } catch (error) {
-        this.log.error(`Failed to start stream, retrying... ${error}`);
-        setTimeout(startStream, 5000); // Retry after 5 seconds
+        this.log.error(`Failed to start stream, retrying in 30 seconds ${error}`);
+        setTimeout(startStream, 30000); // Retry after 30 seconds
       }
     };
 
@@ -160,22 +160,18 @@ export class HikvisionApi {
     startStream();
   }
 
-  private async getStream(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse | undefined> {
-    try {
-      // this.log.debug('GET', this._baseURL + url, config);
-      const httpStream = new AxiosDigestAuth({
-        username: this.config.username,
-        password: this.config.password,
-        axios: Axios.create({
-          httpsAgent: new https.Agent({
-            rejectUnauthorized: !this.config.ignoreInsecureTls,
-          }),
+  private async getStream(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse> {
+    // this.log.debug('GET', this._baseURL + url, config);
+    const httpStream = new AxiosDigestAuth({
+      username: this.config.username,
+      password: this.config.password,
+      axios: Axios.create({
+        httpsAgent: new https.Agent({
+          rejectUnauthorized: !this.config.ignoreInsecureTls,
         }),
-      });
-      return await httpStream.get(this._baseURL + url, config);
-    } catch (e: any) {
-      this.log.error(`ERROR: getStream ${this._baseURL + url} -> ${config} ${e}`);
-    }
+      }),
+    });
+    return httpStream.get(this._baseURL + url, config);
   }
 
   private async _getResponse(path: string) {

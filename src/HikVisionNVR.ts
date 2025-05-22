@@ -50,7 +50,11 @@ export class HikVisionNVR {
           this.log.error(`Failed to connect to NVR system, incomplete config @ ${this.hikVisionApi._baseURL}`);
           return;
         }
-        
+
+        if (this.config.maxWidth || this.config.maxWidth) {
+          this.log.debug(`Overriding supplied camera config ${channel.capabilities.StreamingChannel.Video?.videoResolutionWidth?._}x${channel.capabilities.StreamingChannel.Video?.videoResolutionHeight?._} with ${this.config.maxWidth}x${this.config.maxHeight}`);
+        }
+
         const cameraConfig = {
           accessory: 'camera',
           name: (this.config.test ? 'Test ' : '') + channel.name,
@@ -59,9 +63,9 @@ export class HikVisionNVR {
           doorbell: (this.config?.doorbells ? this.config?.doorbells.includes(channel.name) : false),
           model: channel.sourceInputPortDescriptor?.model,
           maxFPS: channel.capabilities.StreamingChannel.Video?.maxFrameRate?._ / 100,
-          maxBitrate: channel.capabilities.StreamingChannel.Video?.vbrUpperCap?._, 
-          maxWidth: channel.capabilities.StreamingChannel.Video?.videoResolutionWidth?._,
-          maxHeight: channel.capabilities.StreamingChannel.Video?.videoResolutionHeight?._,
+          maxBitrate: channel.capabilities.StreamingChannel.Video?.vbrUpperCap?._,
+          maxWidth: (this.config.maxWidth ? this.config.maxWidth : channel.capabilities.StreamingChannel.Video?.videoResolutionWidth?._),
+          maxHeight: (this.config.maxHeight ? this.config.maxHeight : channel.capabilities.StreamingChannel.Video?.videoResolutionHeight?._),
         };
 
         const cameraUUID = this.homebridgeApi.hap.uuid.generate((this.config.test ? 'Test ' : '') + HIKVISION_PLUGIN_NAME + systemInformation.DeviceInfo.deviceID + cameraConfig.channelId,
@@ -157,7 +161,7 @@ export class HikVisionNVR {
           );
 
           setTimeout(() => {
-            this.log.debug(`Disabling motion detection on camera ${camera.displayName}` );
+            this.log.debug(`Disabling motion detection on camera ${camera.displayName}`);
             camera.motionDetected = !motionDetected;
             camera
               .getService(this.homebridgeApi.hap.Service.MotionSensor)

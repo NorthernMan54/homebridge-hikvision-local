@@ -83,6 +83,22 @@
         "type": "boolean",
         "required": false,
         "description": "Enable debug logging for the plugin. Very noisy in the log file."
+      },
+      "maxWidth": {
+        "title": "Override maximum width",
+        "type": "integer",
+        "required": false,
+        "minimum": 0,
+        "maximum": 1920,
+        "description": "Override the supplied video width from the NVR/DVR. This is used to set the maximum width used for video streamed to HomeKit. Set to 0 to disable."
+      },
+      "maxHeight": {
+        "title": "Override maximum height",
+        "type": "integer",
+        "required": false,
+        "minimum": 0,
+        "maximum": 1080,
+        "description": "Override the supplied video height from the NVR/DVR. This is used to set the maximum height used for video streamed to HomeKit. Set to 0 to disable."
       }
     }
   },
@@ -91,11 +107,10 @@
       "type": "fieldset",
       "title": "Required Settings",
       "items": [
-          "host",
-          "secure",
-   
-          "username",
-          "password"
+        "host",
+        "secure",
+        "username",
+        "password"
       ]
     },
     {
@@ -115,6 +130,12 @@
         "debugFfmpeg",
         "ignoreInsecureTls",
         "refresh",
+        {
+          "type": "help",
+          "helpvalue": "<h5><B>Override NVR/DVR supplied camera resolution</b></h5>"
+        },
+        "maxWidth",
+        "maxHeight",
         "debug"
       ]
     }
