@@ -4,7 +4,7 @@ import { AxiosDigestAuth } from '@lukesthl/ts-axios-digest-auth';
 import Axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { PlatformConfig } from 'homebridge';
-import xml2js, { Parser } from 'xml2js';
+import { XMLParser } from 'fast-xml-parser';
 
 export interface HikVisionNvrApiConfiguration extends PlatformConfig {
   host: string
@@ -19,7 +19,7 @@ export interface HikVisionNvrApiConfiguration extends PlatformConfig {
 }
 
 export class HikvisionApi {
-  private _parser?: Parser;
+  private xmlParser: XMLParser;
   private log?: any;
   private config: HikVisionNvrApiConfiguration;
   public _baseURL?: string;
@@ -28,7 +28,10 @@ export class HikvisionApi {
   constructor(config: HikVisionNvrApiConfiguration, log: any) {
     this._baseURL = `http${config.secure ? 's' : ''}://${config.host}`;
     this.config = config;
-    this._parser = new Parser({ explicitArray: false });
+    this.xmlParser = new XMLParser({
+      ignoreAttributes: false,
+      attributeNamePrefix: '',
+    });
     this.log = log;
   }
 
@@ -86,10 +89,6 @@ export class HikvisionApi {
   async startMonitoringEvents(callback: (value: any) => any) {
     this.log.info('Starting event monitoring...');
     const url = '/ISAPI/Event/notification/alertStream';
-
-    const xmlParser = new xml2js.Parser({
-      explicitArray: false,
-    });
 
     const startStream = async () => {
       try {
@@ -151,7 +150,7 @@ export class HikvisionApi {
         // console.log('DATA', data);
         if (data.includes('<EventNotificationAlert')) {
           const message = data.slice(data.indexOf('<EventNotificationAlert'));
-          const eventMsg = await xmlParser.parseStringPromise(message);
+          const eventMsg = await this.xmlParser.parse(message);
           callback(eventMsg);
         }
       });
@@ -196,7 +195,7 @@ export class HikvisionApi {
           }
         },
       });
-      const responseJson = await this._parser?.parseStringPromise(response?.data);
+      const responseJson = await this.xmlParser.parse(response?.data);
       this.connected = true;
       return responseJson;
     } catch (e: any) {

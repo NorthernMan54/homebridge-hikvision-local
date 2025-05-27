@@ -52,20 +52,20 @@ export class HikVisionNVR {
         }
 
         if (this.config.maxWidth || this.config.maxWidth) {
-          this.log.debug(`Overriding supplied camera config ${channel.capabilities.StreamingChannel.Video?.videoResolutionWidth?._}x${channel.capabilities.StreamingChannel.Video?.videoResolutionHeight?._} with ${this.config.maxWidth}x${this.config.maxHeight}`);
+          this.log.debug(`Overriding supplied camera config ${channel.capabilities.StreamingChannel.Video?.videoResolutionWidth?.["#text"]}x${channel.capabilities.StreamingChannel.Video?.videoResolutionHeight?.["#text"]} with ${this.config.maxWidth}x${this.config.maxHeight}`);
         }
 
         const cameraConfig = {
           accessory: 'camera',
           name: (this.config.test ? 'Test ' : '') + channel.name,
           channelId: channel.id,
-          hasAudio: channel.capabilities ? String(channel.capabilities.StreamingChannel.Audio.enabled._) == 'true' : false,
+          hasAudio: channel.capabilities ? String(channel.capabilities.StreamingChannel.Audio.enabled["#text"]) == 'true' : false,
           doorbell: (this.config?.doorbells ? this.config?.doorbells.includes(channel.name) : false),
           model: channel.sourceInputPortDescriptor?.model,
-          maxFPS: channel.capabilities.StreamingChannel.Video?.maxFrameRate?._ / 100,
-          maxBitrate: channel.capabilities.StreamingChannel.Video?.vbrUpperCap?._,
-          maxWidth: (this.config.maxWidth ? this.config.maxWidth : channel.capabilities.StreamingChannel.Video?.videoResolutionWidth?._),
-          maxHeight: (this.config.maxHeight ? this.config.maxHeight : channel.capabilities.StreamingChannel.Video?.videoResolutionHeight?._),
+          maxFPS: channel.capabilities.StreamingChannel.Video?.maxFrameRate?.["#text"] / 100,
+          maxBitrate: channel.capabilities.StreamingChannel.Video?.vbrUpperCap?.["#text"],
+          maxWidth: (this.config.maxWidth ? this.config.maxWidth : channel.capabilities.StreamingChannel.Video?.videoResolutionWidth?.["#text"]),
+          maxHeight: (this.config.maxHeight ? this.config.maxHeight : channel.capabilities.StreamingChannel.Video?.videoResolutionHeight?.["#text"]),
         };
 
         const cameraUUID = this.homebridgeApi.hap.uuid.generate((this.config.test ? 'Test ' : '') + HIKVISION_PLUGIN_NAME + systemInformation.DeviceInfo.deviceID + cameraConfig.channelId,

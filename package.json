@@ -10,13 +10,13 @@
     "url": "git+https://github.com/NorthernMan54/homebridge-hikvision-local.git"
   },
   "dependencies": {
+    "@homebridge-plugins/homebridge-camera-ffmpeg": "^4.0.0",
     "@lukesthl/ts-axios-digest-auth": "^1.0.5",
     "axios": "^1.8.4",
     "axios-debug-log": "^1.0.0",
     "axios-digest": "^0.3.0",
     "debug": "^4.4.0",
-    "@homebridge-plugins/homebridge-camera-ffmpeg": "^4.0.0",
-    "xml2js": "^0.6.2"
+    "fast-xml-parser": "^5.2.3"
   },
   "overrides": {
     "axios-digest": {
