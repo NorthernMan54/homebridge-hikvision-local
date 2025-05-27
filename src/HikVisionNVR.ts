@@ -52,7 +52,7 @@ export class HikVisionNVR {
         }
 
         if (this.config.maxWidth || this.config.maxWidth) {
-          this.log.debug(`Overriding supplied camera config ${channel.capabilities.StreamingChannel.Video?.videoResolutionWidth?.['#text']}x${channel.capabilities.StreamingChannel.Video?.videoResolutionHeight?.['#text']} with ${this.config.maxWidth}x${this.config.maxHeight}`);
+          this.log.debug(`Overriding supplied camera config ${channel.name} - ${channel.capabilities.StreamingChannel.Video?.videoResolutionWidth?.['#text']}x${channel.capabilities.StreamingChannel.Video?.videoResolutionHeight?.['#text']} with ${this.config.maxWidth}x${this.config.maxHeight}`);
         }
 
         const cameraConfig = {

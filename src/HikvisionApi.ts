@@ -1,12 +1,9 @@
-// require('axios-debug-log');
 import https from 'https';
-import { AxiosDigestAuth } from '@lukesthl/ts-axios-digest-auth';
-import Axios from 'axios';
-// eslint-disable-next-line import/no-extraneous-dependencies
 import DigestFetch from 'digest-fetch';
 import { XMLParser } from 'fast-xml-parser';
 import { PlatformConfig } from 'homebridge';
 import { MultipartXmlStreamParser } from './lib/MultiPartXMLStreamParser.js';
+import { createLoggedDigestFetch } from './lib/loggedDigestFetch.js';
 
 export interface HikVisionNvrApiConfiguration extends PlatformConfig {
   host: string
@@ -37,10 +34,16 @@ export class HikvisionApi {
     });
     this.log = log;
 
-    this.client = new DigestFetch(this.config.username, this.config.password, {
-      algorithm: 'MD5',
-      timeout: 10000,
-    });
+    this.client = createLoggedDigestFetch(
+      this.config.username,
+      this.config.password,
+      {
+        algorithm: 'MD5',
+        timeout: 8000,
+        agent: new https.Agent({ rejectUnauthorized: !this.config.ignoreInsecureTls }),
+      },
+      (msg: string) => this.log.debug(msg), // or `console.log`
+    );
   }
 
   /*
@@ -62,6 +65,7 @@ export class HikvisionApi {
     "telecontrolID": "255"
   }
   */
+
   public async getSystemInfo() {
     return this._getResponse('/ISAPI/System/deviceInfo');
   }
@@ -97,7 +101,7 @@ export class HikvisionApi {
   async startMonitoringEvents(callback: (event: any) => void): Promise<void> {
     const url = `${this._baseURL}/ISAPI/Event/notification/alertStream`;
     const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '' });
-  
+
     const startStream = async () => {
       try {
         const res = await this.client.fetch(url, {
@@ -106,21 +110,21 @@ export class HikvisionApi {
             'Content-Type': 'multipart/form-data',
           },
         });
-        
+
         if (res.status === 403) {
           this.log.warn('Received 403 — likely expired digest nonce. Reconnecting...');
           setTimeout(startStream, 5000); // shorter reconnect for nonce errors
           return;
         }
-        
+
         if (!res.ok || !res.body) {
           this.log.error(`Stream connection failed: ${res.status} -> ${res.statusText}`);
           setTimeout(startStream, 30000);
           return;
         }
-  
+
         const streamParser = new MultipartXmlStreamParser();
-  
+
         streamParser.on('message', (part) => {
           try {
             const event = parser.parse(part.body);
@@ -130,14 +134,14 @@ export class HikvisionApi {
             this.log.debug(`Fragment: ${part.body}`);
           }
         });
-  
+
         streamParser.on('error', (err) => {
           this.log.error(`Stream parse error: ${err}`);
         });
-  
+
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
-  
+
         const pump = async (): Promise<void> => {
           const { value, done } = await reader.read();
           if (done) {
@@ -145,48 +149,72 @@ export class HikvisionApi {
             setTimeout(startStream, 30000);
             return;
           }
-  
+
           streamParser.write(decoder.decode(value, { stream: true }));
           await pump();
         };
-  
+
         await pump();
       } catch (err) {
         this.log.error(`Stream error: ${err}`);
         setTimeout(startStream, 30000);
       }
     };
-  
+
     startStream();
   }
-  
-  private async _getResponse(path: string) {
+
+  private async _getResponse(path: string): Promise<any | undefined> {
     try {
-      // this.log.debug(`_getResponse ${this._baseURL + path}`);
-      const http = new AxiosDigestAuth({
-        username: this.config.username,
-        password: this.config.password,
-        axios: Axios.create({
-          httpsAgent: new https.Agent({
-            rejectUnauthorized: !this.config.ignoreInsecureTls,
-          }),
+      const url = `${this._baseURL}${path}`;
+
+      const client = createLoggedDigestFetch(
+        this.config.username,
+        this.config.password,
+        {
+          algorithm: 'MD5',
           timeout: 8000,
-        }),
-      });
-      const response = await http?.get<string>(this._baseURL + path, {
-        validateStatus: function (status) {
-          if (status !== 401) {
-            return true; // Resolve only if the status code is less than 500
-          } else {
-            return false;
-          }
+          agent: new https.Agent({ rejectUnauthorized: !this.config.ignoreInsecureTls }),
         },
+        (msg: string) => this.log.debug(msg), // or `console.log`
+      );
+
+      // this.log.debug(`➡️ Fetching URL: ${url}`);
+
+      const res = await client.fetch(url, {
+        method: 'GET',
+        headers: {
+          Accept: 'application/xml',
+        },
+        signal: AbortSignal.timeout(8000),
       });
-      const responseJson = await this.xmlParser.parse(response?.data);
+
+      if (res.status === 401) {
+        this.log.error(`❌ Unauthorized (401): ${url}`);
+        return;
+      }
+
+      const xml = await res.text();
+
+      // Log raw response
+      // this.log.debug(`⬅️ STATUS: ${res.status} ${res.statusText}`);
+      // this.log.debug(`⬅️ HEADERS: ${JSON.stringify(Object.fromEntries(res.headers.entries()), null, 2)}`);
+      // this.log.debug(`⬅️ BODY: ${xml}`);
+
+      // Always attempt to parse XML (even for 403 or 404)
+      let responseJson: any;
+      try {
+        responseJson = this.xmlParser.parse(xml);
+      } catch (e: any) {
+        this.log.error(`❌ Failed to parse XML from ${url}: ${e.message}`);
+        return;
+      }
+
       this.connected = true;
       return responseJson;
+
     } catch (e: any) {
-      this.log.error(`ERROR: _getResponse ${this._baseURL + path} -> ${e.message}`);
+      this.log.error(`❌ ERROR: _getResponse ${path} -> ${e.message}`);
     }
   }
 
