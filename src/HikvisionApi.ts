@@ -1,10 +1,12 @@
 // require('axios-debug-log');
 import https from 'https';
 import { AxiosDigestAuth } from '@lukesthl/ts-axios-digest-auth';
-import Axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
+import Axios from 'axios';
 // eslint-disable-next-line import/no-extraneous-dependencies
-import { PlatformConfig } from 'homebridge';
+import DigestFetch from 'digest-fetch';
 import { XMLParser } from 'fast-xml-parser';
+import { PlatformConfig } from 'homebridge';
+import { MultipartXmlStreamParser } from './lib/MultiPartXMLStreamParser.js';
 
 export interface HikVisionNvrApiConfiguration extends PlatformConfig {
   host: string
@@ -24,6 +26,7 @@ export class HikvisionApi {
   private config: HikVisionNvrApiConfiguration;
   public _baseURL?: string;
   public connected: boolean = false;
+  private client: DigestFetch;
 
   constructor(config: HikVisionNvrApiConfiguration, log: any) {
     this._baseURL = `http${config.secure ? 's' : ''}://${config.host}`;
@@ -33,6 +36,11 @@ export class HikvisionApi {
       attributeNamePrefix: '',
     });
     this.log = log;
+
+    this.client = new DigestFetch(this.config.username, this.config.password, {
+      algorithm: 'MD5',
+      timeout: 10000,
+    });
   }
 
   /*
@@ -86,93 +94,72 @@ export class HikvisionApi {
     }
   }
 
-  async startMonitoringEvents(callback: (value: any) => any) {
-    this.log.info('Starting event monitoring...');
-    const url = '/ISAPI/Event/notification/alertStream';
-
+  async startMonitoringEvents(callback: (event: any) => void): Promise<void> {
+    const url = `${this._baseURL}/ISAPI/Event/notification/alertStream`;
+    const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '' });
+  
     const startStream = async () => {
       try {
-        const response = await this.getStream(url, {
-          responseType: 'stream',
-          headers: { 'Content-Type': 'multipart/form-data' },
+        const res = await this.client.fetch(url, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
         });
-
-        this.log.info(`Event Monitoring Connection Status ${response?.status} -> ${response?.statusText}`);
-
-        if (response?.status !== 200) {
-          throw new Error(`Failed to start stream, retrying... ${response?.status} -> ${response?.statusText}`);
-        } else {
-          const stream = response?.data;
-          // eslint-disable-next-line @typescript-eslint/no-use-before-define
-          handleStream(stream);
+        
+        if (res.status === 403) {
+          this.log.warn('Received 403 — likely expired digest nonce. Reconnecting...');
+          setTimeout(startStream, 5000); // shorter reconnect for nonce errors
+          return;
         }
-      } catch (error) {
-        this.log.error(`Failed to start stream, retrying in 30 seconds ${error}`);
-        setTimeout(startStream, 30000); // Retry after 30 seconds
+        
+        if (!res.ok || !res.body) {
+          this.log.error(`Stream connection failed: ${res.status} -> ${res.statusText}`);
+          setTimeout(startStream, 30000);
+          return;
+        }
+  
+        const streamParser = new MultipartXmlStreamParser();
+  
+        streamParser.on('message', (part) => {
+          try {
+            const event = parser.parse(part.body);
+            callback(event);
+          } catch (e) {
+            this.log.error(`Failed to parse XML: ${e instanceof Error ? e.message : String(e)}`);
+            this.log.debug(`Fragment: ${part.body}`);
+          }
+        });
+  
+        streamParser.on('error', (err) => {
+          this.log.error(`Stream parse error: ${err}`);
+        });
+  
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+  
+        const pump = async (): Promise<void> => {
+          const { value, done } = await reader.read();
+          if (done) {
+            this.log.warn('Stream ended. Reconnecting...');
+            setTimeout(startStream, 30000);
+            return;
+          }
+  
+          streamParser.write(decoder.decode(value, { stream: true }));
+          await pump();
+        };
+  
+        await pump();
+      } catch (err) {
+        this.log.error(`Stream error: ${err}`);
+        setTimeout(startStream, 30000);
       }
     };
-
-    const handleStream = async (stream: any) => {
-      stream.on('error', (error: any) => {
-        this.log.error(`Stream error, restarting connection...${error}`);
-        startStream();
-      });
-
-      //  stream.on('end', () => {
-      //    this.log.info('Stream ended, restarting connection...');
-      //    startStream();
-      //  });
-
-      stream.on('close', () => {
-        this.log.info('Stream closed, restarting connection...');
-        startStream();
-      });
-
-      stream.on('finish', () => {
-        this.log.info('Stream finished, restarting connection...');
-        startStream();
-      });
-
-      stream.on('pause', () => {
-        this.log.debug('stream PAUSE');
-      });
-
-      stream.on('resume', () => {
-        this.log.debug('stream RESUME');
-      });
-
-      stream.on('unpipe', () => {
-        this.log.debug('stream UNPIPE');
-      });
-
-      stream.on('data', async (data: { [x: string]: any; toString: () => any; }) => {
-        data = data.toString();
-        // console.log('DATA', data);
-        if (data.includes('<EventNotificationAlert')) {
-          const message = data.slice(data.indexOf('<EventNotificationAlert'));
-          const eventMsg = await this.xmlParser.parse(message);
-          callback(eventMsg);
-        }
-      });
-    };
-
+  
     startStream();
   }
-
-  private async getStream(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse> {
-    // this.log.debug('GET', this._baseURL + url, config);
-    const httpStream = new AxiosDigestAuth({
-      username: this.config.username,
-      password: this.config.password,
-      axios: Axios.create({
-        httpsAgent: new https.Agent({
-          rejectUnauthorized: !this.config.ignoreInsecureTls,
-        }),
-      }),
-    });
-    return httpStream.get(this._baseURL + url, config);
-  }
-
+  
   private async _getResponse(path: string) {
     try {
       // this.log.debug(`_getResponse ${this._baseURL + path}`);

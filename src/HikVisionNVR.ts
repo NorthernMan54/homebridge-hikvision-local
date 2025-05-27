@@ -52,20 +52,20 @@ export class HikVisionNVR {
         }
 
         if (this.config.maxWidth || this.config.maxWidth) {
-          this.log.debug(`Overriding supplied camera config ${channel.capabilities.StreamingChannel.Video?.videoResolutionWidth?.["#text"]}x${channel.capabilities.StreamingChannel.Video?.videoResolutionHeight?.["#text"]} with ${this.config.maxWidth}x${this.config.maxHeight}`);
+          this.log.debug(`Overriding supplied camera config ${channel.capabilities.StreamingChannel.Video?.videoResolutionWidth?.['#text']}x${channel.capabilities.StreamingChannel.Video?.videoResolutionHeight?.['#text']} with ${this.config.maxWidth}x${this.config.maxHeight}`);
         }
 
         const cameraConfig = {
           accessory: 'camera',
           name: (this.config.test ? 'Test ' : '') + channel.name,
           channelId: channel.id,
-          hasAudio: channel.capabilities ? String(channel.capabilities.StreamingChannel.Audio.enabled["#text"]) == 'true' : false,
+          hasAudio: channel.capabilities ? String(channel.capabilities.StreamingChannel.Audio.enabled['#text']) == 'true' : false,
           doorbell: (this.config?.doorbells ? this.config?.doorbells.includes(channel.name) : false),
           model: channel.sourceInputPortDescriptor?.model,
-          maxFPS: channel.capabilities.StreamingChannel.Video?.maxFrameRate?.["#text"] / 100,
-          maxBitrate: channel.capabilities.StreamingChannel.Video?.vbrUpperCap?.["#text"],
-          maxWidth: (this.config.maxWidth ? this.config.maxWidth : channel.capabilities.StreamingChannel.Video?.videoResolutionWidth?.["#text"]),
-          maxHeight: (this.config.maxHeight ? this.config.maxHeight : channel.capabilities.StreamingChannel.Video?.videoResolutionHeight?.["#text"]),
+          maxFPS: channel.capabilities.StreamingChannel.Video?.maxFrameRate?.['#text'] / 100,
+          maxBitrate: channel.capabilities.StreamingChannel.Video?.vbrUpperCap?.['#text'],
+          maxWidth: (this.config.maxWidth ? this.config.maxWidth : channel.capabilities.StreamingChannel.Video?.videoResolutionWidth?.['#text']),
+          maxHeight: (this.config.maxHeight ? this.config.maxHeight : channel.capabilities.StreamingChannel.Video?.videoResolutionHeight?.['#text']),
         };
 
         const cameraUUID = this.homebridgeApi.hap.uuid.generate((this.config.test ? 'Test ' : '') + HIKVISION_PLUGIN_NAME + systemInformation.DeviceInfo.deviceID + cameraConfig.channelId,
@@ -129,51 +129,55 @@ export class HikVisionNVR {
   }
 
   private processHikVisionEvent(event: any) {
-    switch (event.EventNotificationAlert.eventType) {
-      case 'videoloss':
-        this.log.debug('videoloss, nothing to do...');
-        break;
-      case 'fielddetection':
-      case 'linedetection':
-      case 'shelteralarm':
-      case 'VMD':
-        const motionDetected =
+    try {
+      switch (event.EventNotificationAlert.eventType) {
+        case 'videoloss':
+          this.log.debug('videoloss, nothing to do...');
+          break;
+        case 'fielddetection':
+        case 'linedetection':
+        case 'shelteralarm':
+        case 'VMD':
+          const motionDetected =
           event.EventNotificationAlert.eventState === 'active';
-        const channelId = (event.EventNotificationAlert.channelID ? event.EventNotificationAlert.channelID : event.EventNotificationAlert.dynChannelID);
+          const channelId = (event.EventNotificationAlert.channelID ? event.EventNotificationAlert.channelID : event.EventNotificationAlert.dynChannelID);
 
-        const camera = this.cameras.find(
-          (data) => data.accessory.context.channelId === channelId,
-        );
-        if (!camera) {
-          return this.log.warn(`Could not find camera for event ${event}`);
-        }
-
-        this.log.info(`Motion detected on camera, triggering motion for ${camera.displayName}`);
-
-        if (motionDetected !== camera.motionDetected) {
-          camera.motionDetected = motionDetected;
-          const motionService = camera.getService(
-            this.homebridgeApi.hap.Service.MotionSensor,
+          const camera = this.cameras.find(
+            (data) => data.accessory.context.channelId === channelId,
           );
-          motionService?.setCharacteristic(
-            this.homebridgeApi.hap.Characteristic.MotionDetected,
-            motionDetected,
-          );
+          if (!camera) {
+            return this.log.warn(`Could not find camera for event ${event}`);
+          }
 
-          setTimeout(() => {
-            this.log.debug(`Disabling motion detection on camera ${camera.displayName}`);
-            camera.motionDetected = !motionDetected;
-            camera
-              .getService(this.homebridgeApi.hap.Service.MotionSensor)
-              ?.setCharacteristic(
-                this.homebridgeApi.hap.Characteristic.MotionDetected,
-                !motionDetected,
-              );
-          }, 10000);
-        }
-        break;
-      default:
-        this.log.debug(`event ${JSON.stringify(event)}`);
+          this.log.info(`Motion detected on camera, triggering motion for ${camera.displayName}`);
+
+          if (motionDetected !== camera.motionDetected) {
+            camera.motionDetected = motionDetected;
+            const motionService = camera.getService(
+              this.homebridgeApi.hap.Service.MotionSensor,
+            );
+            motionService?.setCharacteristic(
+              this.homebridgeApi.hap.Characteristic.MotionDetected,
+              motionDetected,
+            );
+
+            setTimeout(() => {
+              this.log.debug(`Disabling motion detection on camera ${camera.displayName}`);
+              camera.motionDetected = !motionDetected;
+              camera
+                .getService(this.homebridgeApi.hap.Service.MotionSensor)
+                ?.setCharacteristic(
+                  this.homebridgeApi.hap.Characteristic.MotionDetected,
+                  !motionDetected,
+                );
+            }, 10000);
+          }
+          break;
+        default:
+          this.log.debug(`event ${JSON.stringify(event)}`);
+      }
+    } catch (err) {
+      this.log.error(`Error processing HikVision event: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
 
