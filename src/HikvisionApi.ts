@@ -24,6 +24,8 @@ export class HikvisionApi {
   public _baseURL?: string;
   public connected: boolean = false;
   private client: DigestFetch;
+  private abortController: AbortController | null = null;
+  private isStreaming: boolean = false;
 
   constructor(config: HikVisionNvrApiConfiguration, log: any) {
     this._baseURL = `http${config.secure ? 's' : ''}://${config.host}`;
@@ -103,22 +105,33 @@ export class HikvisionApi {
     const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '' });
 
     const startStream = async () => {
+      if (this.isStreaming) {
+        this.log.debug('Stream already active, skipping new connection');
+        return;
+      }
+
+      this.isStreaming = true;
+      this.abortController = new AbortController();
+
       try {
         const res = await this.client.fetch(url, {
           method: 'GET',
           headers: {
-            'Content-Type': 'multipart/form-data',
+            Accept: 'multipart/mixed', // Adjusted for Hikvision event stream
           },
+          signal: this.abortController.signal,
         });
 
         if (res.status === 403) {
           this.log.warn('Received 403 — likely expired digest nonce. Reconnecting...');
-          setTimeout(startStream, 5000); // shorter reconnect for nonce errors
+          this.isStreaming = false;
+          setTimeout(startStream, 5000);
           return;
         }
 
         if (!res.ok || !res.body) {
           this.log.error(`Stream connection failed: ${res.status} -> ${res.statusText}`);
+          this.isStreaming = false;
           setTimeout(startStream, 30000);
           return;
         }
@@ -143,25 +156,50 @@ export class HikvisionApi {
         const decoder = new TextDecoder();
 
         const pump = async (): Promise<void> => {
-          const { value, done } = await reader.read();
-          if (done) {
-            this.log.warn('Stream ended. Reconnecting...');
-            setTimeout(startStream, 30000);
-            return;
-          }
+          try {
+            const { value, done } = await reader.read();
+            if (done) {
+              this.log.warn('Stream ended. Reconnecting...');
+              this.isStreaming = false;
+              setTimeout(startStream, 30000);
+              return;
+            }
 
-          streamParser.write(decoder.decode(value, { stream: true }));
-          await pump();
+            streamParser.write(decoder.decode(value, { stream: true }));
+            await pump();
+          } catch (err: any) {
+            this.log.error(`Stream read error: ${err.message}`);
+            this.isStreaming = false;
+            setTimeout(startStream, 30000);
+          }
         };
 
         await pump();
-      } catch (err) {
-        this.log.error(`Stream error: ${err}`);
-        setTimeout(startStream, 30000);
+      } catch (err: any) {
+        if (err.name === 'AbortError') {
+          this.log.debug('Stream aborted');
+        } else {
+          this.log.error(`Stream error: ${err.message}`);
+          this.isStreaming = false;
+          setTimeout(startStream, 30000);
+        }
+      } finally {
+        if (this.isStreaming) {
+          this.isStreaming = false;
+        }
       }
     };
 
     startStream();
+  }
+
+  stopMonitoringEvents(): void {
+    if (this.abortController) {
+      this.abortController.abort();
+      this.abortController = null;
+    }
+    this.isStreaming = false;
+    this.log.debug('Stream stopped');
   }
 
   private async _getResponse(path: string): Promise<any | undefined> {
