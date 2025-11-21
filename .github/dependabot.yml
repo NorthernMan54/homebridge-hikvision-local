@@ -6,6 +6,7 @@ updates:
     interval: daily
     time: "10:00"
   open-pull-requests-limit: 10
+  target-branch: "beta-2.2.0"
   assignees:
   - NorthernMan54
   labels:
@@ -30,6 +31,7 @@ updates:
     time: "09:00"
   # Create PRs for out-of-date actions
   open-pull-requests-limit: 10
+  target-branch: "beta-2.2.0"
   # Add labels to PRs
   labels:
     - "dependencies"
