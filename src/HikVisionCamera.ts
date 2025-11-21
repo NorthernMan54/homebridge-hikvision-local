@@ -1,4 +1,3 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
 // We borrow, rather cheekly from the homebridge-camera-ffmpeg plugin.
 // TODO: probably rethink and do something like https://github.com/homebridge/homebridge-examples/tree/master/bridged-camera-example-typescript.
 import { Logger } from '@homebridge-plugins/homebridge-camera-ffmpeg/dist/logger.js';
@@ -66,7 +65,8 @@ export class HikVisionCamera {
 
   configure(accessory: any) {
     this.log.info(
-      `Configuring ${( this.config.doorbells && this.config.doorbells.includes(accessory.displayName) ? 'doorbell' : 'camera' )} accessory: ${accessory.displayName} - ${JSON.stringify(accessory.context)}`,
+      // eslint-disable-next-line max-len
+      `Configuring ${(this.config.doorbells && this.config.doorbells.includes(accessory.displayName) ? 'doorbell' : 'camera')} accessory: ${accessory.displayName} - ${JSON.stringify(accessory.context)}`,
     );
 
     accessory.on('identify', () => {
@@ -95,7 +95,7 @@ export class HikVisionCamera {
       const switchService = new this.homebridgeApi.hap.Service.Switch(accessory.displayName + ' Doorbell Trigger', 'DoorbellTrigger');
       switchService.getCharacteristic(this.homebridgeApi.hap.Characteristic.On)
         .on('set', (state: any, callback: any) => {
-          this.log.info(`Doorbell trigger for ${accessory.displayName} - ${state}` );
+          this.log.info(`Doorbell trigger for ${accessory.displayName} - ${state}`);
           if (state) {
             doorbellService.getCharacteristic(this.homebridgeApi.hap.Characteristic.ProgrammableSwitchEvent).setValue(this.homebridgeApi.hap.Characteristic.ProgrammableSwitchEvent.SINGLE_PRESS);
             setTimeout(() => {
@@ -110,7 +110,7 @@ export class HikVisionCamera {
 
     //      doorbell.updateCharacteristic(hap.Characteristic.ProgrammableSwitchEvent, hap.Characteristic.ProgrammableSwitchEvent.SINGLE_PRESS);
 
-    const channelId = accessory.context.channelId; 
+    const channelId = accessory.context.channelId;
     const cameraConfig = <CameraConfig>{
       name: accessory.displayName,
       videoConfig: {
@@ -119,7 +119,7 @@ export class HikVisionCamera {
         }:${accessory.context.password}@${accessory.context.host
         }/ISAPI/Streaming/channels/${channelId}01/picture?videoResolutionWidth=720`,
         maxFPS: (accessory.context.maxFPS ? accessory.context.maxFPS : 30),
-        maxBitrate: (accessory.context.maxBitrate ? accessory.context.maxBitrate : 16384), 
+        maxBitrate: (accessory.context.maxBitrate ? accessory.context.maxBitrate : 16384),
         maxWidth: (accessory.context.maxWidth ? accessory.context.maxWidth : 1920),
         maxHeight: (accessory.context.maxHeight ? accessory.context.maxHeight : 1080),
         vcodec: 'libx264',

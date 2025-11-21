@@ -10,7 +10,9 @@ export function createLoggedDigestFetch(
   const getClient = client.getClient.bind(client);
 
   const logHeaders = (headers: Record<string, any> | Headers | undefined): string => {
-    if (!headers) return '{}';
+    if (!headers) {
+      return '{}';
+    }
     const headerObj = headers instanceof Headers
       ? Object.fromEntries(headers.entries())
       : { ...headers };

@@ -1,9 +1,8 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
 import { API, PlatformAccessory, PlatformConfig } from 'homebridge';
 import { HikVisionCamera } from './HikVisionCamera.js';
 import { HikVisionNvrApiConfiguration, HikvisionApi } from './HikvisionApi.js';
-import { Log } from './lib/logger.js';
 import { HIKVISION_PLUGIN_NAME } from './index.js';
+import { Log } from './lib/logger.js';
 
 export class HikVisionNVR {
   private homebridgeApi: API;
@@ -52,6 +51,7 @@ export class HikVisionNVR {
         }
 
         if (this.config.maxWidth || this.config.maxWidth) {
+          // eslint-disable-next-line max-len
           this.log.debug(`Overriding supplied camera config ${channel.name} - ${channel.capabilities.StreamingChannel.Video?.videoResolutionWidth?.['#text']}x${channel.capabilities.StreamingChannel.Video?.videoResolutionHeight?.['#text']} with ${this.config.maxWidth}x${this.config.maxHeight}`);
         }
 
@@ -59,7 +59,7 @@ export class HikVisionNVR {
           accessory: 'camera',
           name: (this.config.test ? 'Test ' : '') + channel.name,
           channelId: channel.id,
-          hasAudio: channel.capabilities.StreamingChannel.Audio ? String(channel.capabilities.StreamingChannel.Audio.enabled['#text']) == 'true' : false,
+          hasAudio: channel.capabilities.StreamingChannel.Audio ? String(channel.capabilities.StreamingChannel.Audio.enabled['#text']) === 'true' : false,
           doorbell: (this.config?.doorbells ? this.config?.doorbells.includes(channel.name) : false),
           model: channel.sourceInputPortDescriptor?.model,
           maxFPS: channel.capabilities.StreamingChannel.Video?.maxFrameRate?.['#text'] / 100,
@@ -139,7 +139,7 @@ export class HikVisionNVR {
         case 'shelteralarm':
         case 'VMD':
           const motionDetected =
-          event.EventNotificationAlert.eventState === 'active';
+            event.EventNotificationAlert.eventState === 'active';
           const channelId = (event.EventNotificationAlert.channelID ? event.EventNotificationAlert.channelID : event.EventNotificationAlert.dynChannelID);
 
           const camera = this.cameras.find(

@@ -1,4 +1,3 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
 import { API } from 'homebridge';
 import { HikVisionNVR } from './HikVisionNVR.js';
 

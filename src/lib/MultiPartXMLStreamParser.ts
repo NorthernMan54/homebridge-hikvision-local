@@ -19,7 +19,9 @@ export class MultipartXmlStreamParser extends EventEmitter {
   private processBuffer(): void {
     while (true) {
       const headerEnd = this.buffer.indexOf('\r\n\r\n');
-      if (headerEnd === -1) break;
+      if (headerEnd === -1) {
+        break;
+      }
 
       const rawHeaders = this.buffer.slice(0, headerEnd);
       const headers = this.parseHeaders(rawHeaders);
@@ -31,7 +33,9 @@ export class MultipartXmlStreamParser extends EventEmitter {
       }
 
       const totalLength = headerEnd + 4 + contentLength;
-      if (this.buffer.length < totalLength) break;
+      if (this.buffer.length < totalLength) {
+        break;
+      }
 
       const body = this.buffer.slice(headerEnd + 4, totalLength);
       this.emit('message', {

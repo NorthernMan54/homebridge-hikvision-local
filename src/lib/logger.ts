@@ -10,9 +10,15 @@ export class Log {
   private stringifyArgs(args: unknown[]): string {
     return args
       .map(arg => {
-        if (typeof arg === 'string') return arg;
-        if (Buffer.isBuffer(arg)) return arg.toString('utf8');
-        if (typeof arg === 'object') return JSON.stringify(arg, null, 2);
+        if (typeof arg === 'string') {
+          return arg;
+        }
+        if (Buffer.isBuffer(arg)) {
+          return arg.toString('utf8');
+        }
+        if (typeof arg === 'object') {
+          return JSON.stringify(arg, null, 2);
+        }
         return String(arg);
       })
       .join(' ');
