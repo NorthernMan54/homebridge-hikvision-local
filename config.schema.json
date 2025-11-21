@@ -72,7 +72,7 @@
         "description": "Set on to enable test mode. This will prevent 'Service name \"xxxxx\" is already in use on the network' messages."
       },
       "doorbells": {
-        "title": "Doorbell Camera's",
+        "title": "Doorbell Cameras",
         "type": "array",
         "items": {
           "type": "string"
