@@ -59,7 +59,7 @@ export class HikVisionNVR {
           accessory: 'camera',
           name: (this.config.test ? 'Test ' : '') + channel.name,
           channelId: channel.id,
-          hasAudio: channel.capabilities ? String(channel.capabilities.StreamingChannel.Audio.enabled['#text']) == 'true' : false,
+          hasAudio: channel.capabilities.StreamingChannel.Audio ? String(channel.capabilities.StreamingChannel.Audio.enabled['#text']) == 'true' : false,
           doorbell: (this.config?.doorbells ? this.config?.doorbells.includes(channel.name) : false),
           model: channel.sourceInputPortDescriptor?.model,
           maxFPS: channel.capabilities.StreamingChannel.Video?.maxFrameRate?.['#text'] / 100,
