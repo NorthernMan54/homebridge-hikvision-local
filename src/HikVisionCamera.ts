@@ -1,4 +1,8 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
+// We borrow, rather cheekly from the homebridge-camera-ffmpeg plugin.
+// TODO: probably rethink and do something like https://github.com/homebridge/homebridge-examples/tree/master/bridged-camera-example-typescript.
+import { Logger } from '@homebridge-plugins/homebridge-camera-ffmpeg/dist/logger.js';
+import { CameraConfig } from '@homebridge-plugins/homebridge-camera-ffmpeg/dist/settings';
+import { StreamingDelegate } from '@homebridge-plugins/homebridge-camera-ffmpeg/dist/streamingDelegate.js';
 import {
   API,
   AudioStreamingCodecType,
@@ -9,11 +13,6 @@ import {
   Service,
   WithUUID,
 } from 'homebridge';
-// We borrow, rather cheekly from the homebridge-camera-ffmpeg plugin.
-// TODO: probably rethink and do something like https://github.com/homebridge/homebridge-examples/tree/master/bridged-camera-example-typescript.
-import { CameraConfig } from 'homebridge-camera-ffmpeg/dist/configTypes';
-import { Logger } from 'homebridge-camera-ffmpeg/dist/logger';
-import { StreamingDelegate } from 'homebridge-camera-ffmpeg/dist/streamingDelegate';
 
 export class HikVisionCamera {
   log: any;
@@ -66,7 +65,8 @@ export class HikVisionCamera {
 
   configure(accessory: any) {
     this.log.info(
-      `Configuring ${( this.config.doorbells && this.config.doorbells.includes(accessory.displayName) ? 'doorbell' : 'camera' )} accessory: ${accessory.displayName}`,
+      // eslint-disable-next-line max-len
+      `Configuring ${(this.config.doorbells && this.config.doorbells.includes(accessory.displayName) ? 'doorbell' : 'camera')} accessory: ${accessory.displayName} - ${JSON.stringify(accessory.context)}`,
     );
 
     accessory.on('identify', () => {
@@ -95,7 +95,7 @@ export class HikVisionCamera {
       const switchService = new this.homebridgeApi.hap.Service.Switch(accessory.displayName + ' Doorbell Trigger', 'DoorbellTrigger');
       switchService.getCharacteristic(this.homebridgeApi.hap.Characteristic.On)
         .on('set', (state: any, callback: any) => {
-          this.log.info(`Doorbell trigger for ${accessory.displayName} - ${state}` );
+          this.log.info(`Doorbell trigger for ${accessory.displayName} - ${state}`);
           if (state) {
             doorbellService.getCharacteristic(this.homebridgeApi.hap.Characteristic.ProgrammableSwitchEvent).setValue(this.homebridgeApi.hap.Characteristic.ProgrammableSwitchEvent.SINGLE_PRESS);
             setTimeout(() => {
@@ -118,9 +118,10 @@ export class HikVisionCamera {
         stillImageSource: `-i http${accessory.context.secure ? 's' : ''}://${accessory.context.username
         }:${accessory.context.password}@${accessory.context.host
         }/ISAPI/Streaming/channels/${channelId}01/picture?videoResolutionWidth=720`,
-        maxFPS: 30, // TODO: pull this from the camera to avoid ever upsampling
-        maxBitrate: 16384, // TODO: pull this from the camera to avoid ever upsampling
-        maxWidth: 1920, // TODO: pull this from the camera to avoid ever upsampling
+        maxFPS: (accessory.context.maxFPS ? accessory.context.maxFPS : 30),
+        maxBitrate: (accessory.context.maxBitrate ? accessory.context.maxBitrate : 16384),
+        maxWidth: (accessory.context.maxWidth ? accessory.context.maxWidth : 1920),
+        maxHeight: (accessory.context.maxHeight ? accessory.context.maxHeight : 1080),
         vcodec: 'libx264',
         audio: accessory.context.hasAudio,
         debug: Boolean(accessory.context.debugFfmpeg),
@@ -135,7 +136,7 @@ export class HikVisionCamera {
       cameraConfig,
       this.homebridgeApi,
       this.homebridgeApi.hap,
-      '',
+      accessory,
     );
 
     const cameraControllerOptions: CameraControllerOptions = {

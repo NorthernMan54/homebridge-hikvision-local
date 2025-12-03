@@ -8,3 +8,4 @@ yarn-error.log
 /test/hbConfig/persist
 /test/hbConfig/backups
 proxy/doc/i18n/en/Config.json
+test/hbConfig/config.json

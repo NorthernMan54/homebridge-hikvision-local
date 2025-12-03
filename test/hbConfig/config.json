@@ -19,8 +19,23 @@
             "tempUnits": "c",
             "lang": "auto",
             "sudo": false,
-            "platform": "config",
-            "debug": true
+            "platform": "config"
+        },
+        {
+            "name": "Hikvision-Local",
+            "host": "192.168.1.12",
+            "port": 80,
+            "secure": false,
+            "ignoreInsecureTls": true,
+            "username": "homebridge",
+            "password": "xxxxxxx",
+            "debugFfmpeg": false,
+            "doorbells": [
+                "Porch"
+            ],
+            "debug": true,
+            "test": true,
+            "platform": "Hikvision-Local"
         }
     ],
     "accessories": []

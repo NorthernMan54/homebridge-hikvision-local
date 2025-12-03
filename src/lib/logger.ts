@@ -7,27 +7,45 @@ export class Log {
     this.debugMode = debugMode;
   }
 
-  debug(msg:string) {
+  private stringifyArgs(args: unknown[]): string {
+    return args
+      .map(arg => {
+        if (typeof arg === 'string') {
+          return arg;
+        }
+        if (Buffer.isBuffer(arg)) {
+          return arg.toString('utf8');
+        }
+        if (typeof arg === 'object') {
+          return JSON.stringify(arg, null, 2);
+        }
+        return String(arg);
+      })
+      .join(' ');
+  }
+
+  debug(...args: unknown[]) {
+    const message = this.stringifyArgs(args);
     if (this.debugMode) {
-      this.logger.info(msg);
+      this.logger.info(message);
     } else {
-      this.logger.debug(msg);
+      this.logger.debug(message);
     }
   }
 
-  info(msg:string) {
-    this.logger.info(msg);
+  info(...args: unknown[]) {
+    this.logger.info(this.stringifyArgs(args));
   }
 
-  warn(msg:string) {
-    this.logger.warn(msg);
+  warn(...args: unknown[]) {
+    this.logger.warn(this.stringifyArgs(args));
   }
 
-  error(msg:string) {
-    this.logger.error(msg);
+  error(...args: unknown[]) {
+    this.logger.error(this.stringifyArgs(args));
   }
 
-  log(msg:string) {
-    this.logger.info(msg);
+  log(...args: unknown[]) {
+    this.logger.info(this.stringifyArgs(args));
   }
 }
